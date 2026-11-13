@@ -173,8 +173,8 @@ importers:
         specifier: 1.2.151
         version: 1.2.151
       '@mizchi/vlmkit':
-        specifier: ^0.22.0
-        version: 0.22.0(playwright@1.56.1)
+        specifier: ^0.24.0
+        version: 0.24.0(playwright@1.56.1)
       '@tailwindcss/cli':
         specifier: 4.3.5
         version: 4.3.5
@@ -267,8 +267,8 @@ packages:
     resolution: {integrity: sha512-j37dj/h6p6pots1L7pLPPNuABEEu9WP4OYg9pW1g+nYG331j0+3canE9OagtYdytYvdSAMG+2fKU5cxep6LgjA==}
     engines: {node: '>=22.12.0'}
 
-  '@mizchi/vlmkit@0.22.0':
-    resolution: {integrity: sha512-Lz27p151VzkG1U7qxAOIAK8+yDojEB1gKCMkCuyC8RGN4sLWDazNle38xSSaEjSi4DeZY8bGMsRHusiX06iFDQ==}
+  '@mizchi/vlmkit@0.24.0':
+    resolution: {integrity: sha512-yFz/2ipB+OOMkrreQLJUMJwHzV1GoKh5OKIBRjPsZd8S12g4DaAm4qmH/pcP8fD0qfEoQTKg5ylBL7Bb7D4B0Q==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
@@ -1272,7 +1272,7 @@ snapshots:
     dependencies:
       '@chevrotain/types': 13.2.0
 
-  '@mizchi/vlmkit@0.22.0(playwright@1.56.1)':
+  '@mizchi/vlmkit@0.24.0(playwright@1.56.1)':
     dependencies:
       '@hono/node-server': 1.19.19(hono@4.13.18)
       cac: 7.1.0
