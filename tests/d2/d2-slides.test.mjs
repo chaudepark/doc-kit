@@ -3,7 +3,7 @@
  *
  * The deck's real gates are page gates — `check integrity`, `check copy --manifest`,
  * `check a11y contrast` — and they need Chromium, a built CLI and a `d2` that can lay
- * a figure out. That job is `.github/workflows/d2-slides.yml`. What is left over is
+ * a figure out. That job is run by hand (examples/d2-slides/README.md). What is left over is
  * everything the builder decides BEFORE a figure is drawn: where a slide ends, which
  * layout a slide gets, what the manifest says, when the prose is too long for the
  * frame, and what happens when a figure does not compile. None of that needs `d2`, so
@@ -17,7 +17,7 @@
  * example can be opened without installing `d2`, and a committed build goes stale the
  * first time someone edits `deck.md`. Its manifest and its slide structure come from
  * the Markdown rather than from TALA, so they can be re-derived here with the stub and
- * compared — the figures' bytes are compared in the workflow, where the real `d2` is.
+ * compared — the figures' bytes are not compared here: that needs the real `d2`.
  */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -316,7 +316,7 @@ a -> b
     assert.equal(slide.kind, "split");
   });
 
-  // The staleness gate. `npm run deck:example` regenerates the committed build.
+  // The staleness gate. `pnpm deck:example` regenerates the committed build.
   it("keeps the committed example build in sync with its deck", () => {
     const fresh = build(readFileSync(EXAMPLE, "utf8"));
     assert.equal(fresh.status, 0, fresh.stderr);
@@ -326,12 +326,12 @@ a -> b
     assert.equal(
       fresh.read("copy.txt"),
       committed("copy.txt"),
-      "examples/d2-slides/deck.md changed without rebuilding built/ — run `npm run deck:example`",
+      "examples/d2-slides/deck.md changed without rebuilding built/ — run `pnpm deck:example`",
     );
     assert.deepEqual(
       structure(fresh.read("index.html")),
       structure(committed("index.html")),
-      "the example's slide count / layouts / titles no longer match its committed build — run `npm run deck:example`",
+      "the example's slide count / layouts / titles no longer match its committed build — run `pnpm deck:example`",
     );
   });
 });

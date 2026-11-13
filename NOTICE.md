@@ -23,13 +23,26 @@ Changed here:
   only on the OS it was rendered on).
 - `scripts/setup-d2.sh`: picks the download for this OS and CPU and verifies the release's checksum;
   `scripts/setup-tla.sh`: its comment in English.
-- Install hints say `pnpm add -D` for `npm i -D`.
+- Install hints say `pnpm add -D` for `npm i -D`; `examples/d2-slides/README.md`, `tests/d2/d2-slides.test.mjs`
+  and the sample documents name `pnpm` commands and `verify-doc.mjs` for `npm run` and `npx`.
+- `docs/dataviz/samples/versions.mjs`: finds a package's directory under pnpm's layout too.
+- `skills/explainer/SKILL.md`, `skills/d2-slides/SKILL.md`, `skills/d2-diagram/SKILL.md`: sentences on what each
+  skill is for beside the others, and on a deck keeping its own look.
+- `skills/explainer/scripts/build-html.mjs`: the language is read from prose only (not from code), and a link to
+  a Markdown file that is not built with the page points beside the source.
+- `docs/figure-cheatsheet/`, `docs/dataviz/`, `examples/d2-slides/`: the document in English (`README.md`) and
+  in Japanese (`README.ja.md`). In `docs/` the Japanese is the original and the English a translation; in
+  `examples/d2-slides/` the English is the original.
+- Skill descriptions and texts no longer point to skills, a CI workflow and an icon that are not in this
+  repository.
 - Not taken: its personas, evals, and the sample documents written for one named reader.
 
 ## first-reader (Apache-2.0)
 
 `skills/first-reader/` is from Shubham Saboo and contributors' awesome-llm-apps, as bundled and changed by the
-explainer project. Its `LICENSE` and `NOTICE` are in that directory.
+explainer project. Its `LICENSE` and `NOTICE` are in that directory. Changed here: `README.md` has a note on
+where the skill and its tests are in doc-kit, and `README.ja.md` is a Japanese translation of it (recorded in
+that `NOTICE` too).
 
 ## Icons in sample documents
 

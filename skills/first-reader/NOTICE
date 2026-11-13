@@ -8,3 +8,8 @@ Changes in this copy (explainer project, 2026-09):
   so Japanese drafts are chunked and paced like English ones.
 - Tests live in tests/first-reader/ of the explainer repository
   (test_first_reader.py adjusted for the new path; test_cjk.py added).
+
+Changes in doc-kit (2026-11):
+- README.md: a note on where the skill and its tests are in doc-kit; the link to the tests points there.
+- README.ja.md added (a Japanese translation of README.md).
+- Tests live in tests/first-reader/ of the doc-kit repository.

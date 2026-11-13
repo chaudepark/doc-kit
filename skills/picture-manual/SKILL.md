@@ -1,6 +1,6 @@
 ---
 name: picture-manual
-description: Turn the manual, README or cheat sheet of a tool (a device, a plug-in, a command, an app, a workflow) into a page a tired reader gets at a glance — each thing they want to do as a card with a picture of before and after, one line of how, one line of what comes out; the flow of use in a few pictures first; the specification folded away or left in the reference. The pictures are drawn from the tool's real output, not sketched. Use whenever the user says a manual or doc is hard to follow, too long, "結局なんだっけ", asks for 図解, 絵で説明, 早見表, チートシート, わかりやすいマニュアル, 使い方のページ, an explainer of something they built, or mentions eli5 for their own tool — even if they only say the doc "could be clearer". Not for a general topic with no tool behind it (the eli5 skill does that), nor for API reference or a spec that must stay complete.
+description: Turn the manual, README or cheat sheet of a tool (a device, a plug-in, a command, an app, a workflow) into a page a tired reader gets at a glance — each thing they want to do as a card with a picture of before and after, one line of how, one line of what comes out; the flow of use in a few pictures first; the specification folded away or left in the reference. The pictures are drawn from the tool's real output, not sketched. Use whenever the user says a manual or doc is hard to follow, too long, "結局なんだっけ", asks for 図解 or 絵で説明 of a tool, 早見表, チートシート, わかりやすいマニュアル, 使い方のページ, or wants the use of something they built shown simply (eli5 for their own tool) — even if they only say the doc "could be clearer". Not for explaining a concept, a PR, a design or a result to a reader, nor for a general topic with no tool behind it (the explainer skill does those), nor for API reference or a spec that must stay complete. The page's look is the doc-kit skill's.
 ---
 
 # Picture manual
@@ -14,6 +14,10 @@ something they want to do. So the page answers three things for each wish and no
 This is the eli5 idea (explain to someone who knows nothing, big pictures, few words) applied to a tool that exists:
 because the tool exists, the pictures can be its real output, and the full text can stay behind the page as the
 reference.
+
+What this skill is not for: a concept, a PR, a design or a result explained to one reader, or a general topic
+with no tool behind it. Those are the `explainer` skill's (prose for one reader, its claims verified by tools).
+This skill is for how to use a thing.
 
 ## The shape of the page
 

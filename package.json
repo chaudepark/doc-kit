@@ -1,6 +1,6 @@
 {
   "name": "doc-kit",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "One look for document pages (daisyUI 5 on Tailwind 4, prebuilt), with the skills that write them",
   "scripts": {
     "build": "sh scripts/build-kit.sh && python3 skills/doc-kit/scripts/dockit wrap src/sample.html -o skills/doc-kit/sample.html --title 'doc-kit sample' --lang en",
@@ -16,6 +16,7 @@
     "daisyui": "5.7.50",
     "marked": "18.0.14",
     "mermaid": "12.0.0",
+    "ml-matrix": "6.15.0",
     "playwright": "1.56.1",
     "tailwindcss": "4.3.5",
     "vega": "6.4.0",

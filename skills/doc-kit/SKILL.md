@@ -1,6 +1,6 @@
 ---
 name: doc-kit
-description: The house look for standalone HTML document pages — manuals, cheat sheets, how-to pages, explainers, reports, research notes — in any of the user's repositories. One prebuilt CSS (daisyUI 5 on Tailwind 4) and a fixed list of parts, so every page has the same fonts, sizes and layout and none is designed from scratch. Use whenever you write, restyle or review such a page, when the user asks for a document, マニュアル, 早見表, チートシート, 手順書, 説明ページ, レポート as HTML, or says pages look different from each other (見た目を揃えたい, デザインシステム). The picture-manual skill uses it for its look. Not for a web app or site with its own design, nor for Markdown.
+description: The house look for standalone HTML document pages — manuals, cheat sheets, how-to pages, explainers, reports, research notes — in any of the user's repositories. One prebuilt CSS (daisyUI 5 on Tailwind 4) and a fixed list of parts, so every page has the same fonts, sizes and layout and none is designed from scratch. It decides how a page looks, not what goes on it: for a tool's manual or cheat sheet (マニュアル, 早見表, チートシート, 使い方のページ) the picture-manual skill decides the content, for an explanation to a reader (説明ページ) the explainer skill does, and both take their look from here. Use it together with them, or alone when the content is already decided (a report, research notes, レポート as HTML, a 手順書 that is already written), when you restyle or review a page, or when the user says pages look different from each other (見た目を揃えたい, デザインシステム). Not for slides (the d2-slides skill keeps a deck's own look), a web app or site with its own design, nor for Markdown.
 ---
 
 # doc-kit
@@ -9,6 +9,14 @@ A page looks like the others because it is made of the same few parts, not becau
 day. So the rule is one: **a page uses only the parts in `sample.html`**. Fonts, text sizes, spacing, the page's
 width and the colours are the kit's; a page does not set them. Every page is dark (the user finds a light page
 glaring), whatever the system is set to.
+
+This skill is the look only. What goes on a page is another skill's: `picture-manual` for how to use a tool (a
+manual, a cheat sheet), `explainer` for an explanation to one reader (a concept, a change, a result). When one of
+them fits, it leads and this skill gives the page its parts; alone, this skill is for a page whose content is
+already decided. Two things keep a look of their own: a slide deck (`d2-slides`), which is a fixed frame
+shown one at a time, not a page that is read; and the page `first-reader` builds of a read, from its own template
+(a tool's record of one run, not a document someone wrote). Do not put `kit.css` on either, nor their styles on a
+page.
 
 In this skill's directory:
 
@@ -21,7 +29,7 @@ In this skill's directory:
 1. Write the body only (what goes inside `<main>`), from the parts below.
 2. `python3 scripts/dockit wrap body.html -o page.html --title "…" [--css own.css] [--prose] [--lang en]`
    One self-contained file: it opens from `file://`, offline, on a phone. The page's language is read from the
-   body (kana: `ja`, otherwise `en`) unless `--lang` says it; write the page in the reader's language.
+   body's prose (kana outside `<pre>` and `<code>`: `ja`, otherwise `en`) unless `--lang` says it; write the page in the reader's language.
 3. `python3 scripts/dockit check page.html`. Fix what it names; do not ship a page that fails.
    (Inside a `doc-fig` figure the classes are the drawing tool's and are not asked to be defined.)
 4. Look at it at desktop and phone width (`../picture-manual/scripts/shots.sh page.html <out dir>`).

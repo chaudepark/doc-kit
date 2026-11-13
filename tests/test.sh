@@ -43,6 +43,19 @@ python3 $dockit check "$tmp/fig.html"
 # explainer's page builder gives a kit page: a sample document built with it passes the check
 node skills/explainer/scripts/build-html.mjs docs/figure-cheatsheet/README.md >/dev/null
 python3 $dockit check docs/figure-cheatsheet/dist/index.html
+# the page's language comes from its prose: the English page quotes Japanese tool output and stays English
+grep -q '<html lang="en">' docs/figure-cheatsheet/dist/index.html || { echo "the English sample was not built as lang=en" >&2; exit 1; }
+node skills/explainer/scripts/build-html.mjs docs/figure-cheatsheet/README.ja.md >/dev/null
+python3 $dockit check docs/figure-cheatsheet/dist/README.ja.html
+grep -q '<html lang="ja">' docs/figure-cheatsheet/dist/README.ja.html || { echo "the Japanese sample was not built as lang=ja" >&2; exit 1; }
+grep -q 'href="../README.ja.md"' docs/figure-cheatsheet/dist/index.html || { echo "the link to the other language does not point beside the source" >&2; exit 1; }
+# dockit reads the language the same way: kana inside <pre> or <code> is not prose
+printf '<p>English text</p><pre><code>\343\201\213\343\201\252</code></pre>' > "$tmp/body.html"
+python3 $dockit wrap "$tmp/body.html" -o "$tmp/lang.html" --title lang
+grep -q '<html lang="en">' "$tmp/lang.html" || { echo "dockit read the language from code" >&2; exit 1; }
+printf '<p>\343\201\213\343\201\252</p>' > "$tmp/body.html"
+python3 $dockit wrap "$tmp/body.html" -o "$tmp/lang.html" --title lang
+grep -q '<html lang="ja">' "$tmp/lang.html" || { echo "dockit did not read kana in prose as ja" >&2; exit 1; }
 # the imported skills: their own tests that need no browser and no d2
 node --test tests/d2/*.test.mjs >"$tmp/d2.log" 2>&1 || { tail -20 "$tmp/d2.log" >&2; exit 1; }
 python3 tests/first-reader/test_cjk.py >/dev/null

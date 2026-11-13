@@ -1,5 +1,12 @@
 # 👁️ First Reader
 
+English | [日本語](README.ja.md)
+
+> In doc-kit this skill comes with the plugin (the repository's root README says how to install it), and its
+> tests are in `tests/first-reader/`. What follows is the README of the project it was taken from: the paths
+> under Install and Verify are that project's. The page it builds of a read keeps its own look (its template's),
+> not doc-kit's.
+
 Readers before you publish. 
 
 Most AI slop skills look at the text itself: banned words, sentence length, em dashes. They cannot tell you whether a real person would keep reading. This skill simulates two readers going through your draft one passage at a time and reports what happened to them: where they got interested, where they lost interest, where they stopped, and what they still remembered the next day. A third reader only skims the piece and says whether they would have opened it at all. When the run is done you can ask any of the readers follow-up questions. The skill never rewrites your text.
@@ -73,7 +80,7 @@ The test builds temporary drafts and checks each part of the skill: the
 skim view, the served feed (no text written to disk, reading speed
 enforced, one token per reader), the memory quiz, the trust signals, the
 reader consult, and the page. The behavior spec is in
-[`agent_skills/evals/first-reader/`](../evals/first-reader/). Run each
+[`agent_skills/evals/first-reader/`](../../tests/first-reader/). Run each
 prompt in `evals.json` in a fresh session with the skill installed and
 check the listed expectations. `trigger-cases.json` lists when the skill
 should and should not fire. The ledger in the same folder records how the

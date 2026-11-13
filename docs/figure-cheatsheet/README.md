@@ -1,50 +1,65 @@
-# どの図を、どの道具で描くか：Mermaid・D2（TALA / ELK / dagre）・SVG・HTML
+# Which figure, with which tool: Mermaid, D2 (TALA / ELK / dagre), SVG, HTML
 
+English | [日本語](README.ja.md)
 
-> **想定読者**：図をエージェントに Mermaid・D2・SVG で書かせていて、どれを使うかをその場の勘で決めている人。
-> Mermaid と D2 の文法の入門は省きます。
-> 扱うのは 2 つです。どの問いにどの道具とエンジンを使うか。そして、それぞれで実際に起きた失敗です。
-> 所要 10 分。
-> 道具とエンジンの比較は `samples/compare.mjs` の出力です。同じサンプルを Mermaid と D2 の 3 つのエンジンで描きました。図はすべて `figure-check.mjs` を通し、出てきたシートを目で見ました。
-> 本文の出力は `npm run verify:cheatsheet` で再実行して照合しています。
-> D2 は v0.9.0 です（TALA が MPL-2.0 で公開され、同梱された版。[d2lang.com/blog/tala-is-open-source](https://d2lang.com/blog/tala-is-open-source/)）。Mermaid は 12.0.0 です。
+> **For**: someone who has an agent write figures in Mermaid, D2 and SVG, and picks between them by feel.
+> No introduction to the syntax of Mermaid or D2.
+> Two things are covered: which tool and engine for which question, and the failures that really happened with each.
+> About 10 minutes.
+> The comparison of tools and engines is the output of `samples/compare.mjs`: the same samples drawn with Mermaid and with D2's three engines. Every figure went through `figure-check.mjs`, and every sheet it made was read by eye.
+> The output quoted here is run again and compared by `verify-doc.mjs` (from the repository's root: `node skills/explainer/scripts/verify-doc.mjs docs/figure-cheatsheet`).
+> D2 is v0.9.0 (the release where TALA became MPL-2.0 and bundled: [d2lang.com/blog/tala-is-open-source](https://d2lang.com/blog/tala-is-open-source/)). Mermaid is 12.0.0.
+
+The samples' labels and the scripts' output are Japanese, and the measurements depend on those labels' widths. So the quoted output and the figures are kept as they ran; the text after each block says what it shows. The words that recur:
+
+| In the output | Means |
+|---|---|
+| `描ける` | it renders |
+| `中が縦に並んだ` / `中も横に並んだ` | the inside came out vertical / the inside came out horizontal too |
+| `一番上` / `一番左` | topmost / leftmost |
+| `ほぼ動かない`, `少し動く`, `大きく動く` | hardly moves, moves a little, moves a lot |
+| `急に伸びる` / `ほぼ伸びない` | grows steeply / hardly grows |
+| `減点`, `矢印` | penalty, arrow score |
+| `重なって走る` | run on top of each other |
+| labels `エッジ`, `サービス`, `データ`, `アプリ`, `キュー` | Edge, Services, Data, App, Queue |
+| labels `固める`, `送る`, `通知`, `管理画面` | Bundle, Send, Notifications, Admin |
 
 ---
 
-## 0. 一枚で：Mermaid → D2 → SVG / HTML の順に当てる
+## 0. On one page: try Mermaid, then D2, then SVG / HTML
 
-| 順 | 問い | 道具 | 決め手 |
+| Order | Question | Tool | What decides it |
 |---|---|---|---|
-| 1 | Mermaid で書けて、描いて崩れないか（フロー・シーケンス・状態遷移など） | **Mermaid** | GitHub の Markdown（PR 本文・Issue・README）が、そのまま図として描く。ビルドが要らず、読み手も直せる |
-| 2 | Mermaid では足りない構造か（下の 4 つ） | **D2** | 箱と線の図のまま、配置を細かく決められる |
-| 3 | D2 の「箱と線」に乗らない自由な図か | **SVG / HTML** | 位置そのものに意味があるなら SVG。文字とコードが主なら HTML |
+| 1 | Can Mermaid say it, and does it hold when drawn (a flow, a sequence, a state machine and the like)? | **Mermaid** | GitHub's Markdown (a PR's body, an issue, a README) draws it as a figure. No build, and the reader can fix it |
+| 2 | Is it a structure Mermaid falls short of (the four below)? | **D2** | Still a figure of boxes and lines, with the layout decided in detail |
+| 3 | Is it a free figure that does not fit D2's boxes and lines? | **SVG / HTML** | SVG when position itself means something; HTML when it is mostly text and code |
 
-Mermaid では足りず、D2 を考えるのは、次のどれかに当たるときです（1 節で測りました）。
+Mermaid falls short, and D2 is worth a thought, in one of these cases (measured in section 1).
 
-- 箱（サブグラフ）の中の向きを変えたいのに、中の箱が外とつながっている。Mermaid は、中の向きをエラーを出さずに無視しました。
-- 箱の名前の上を線が通る。Mermaid でも D2 の ELK / dagre でも起きました。D2 の TALA なら避けられました。
-- 一部の箱の位置を固定したい。あるいは、ある箱を別の箱の近くに置きたい（D2 の TALA の `top` / `left` と `near`）。
-- 箱が多く、どのエンジンで並べるかを選びたい（2 節）。
+- You want another direction inside a box (a subgraph), and a box inside it is connected to the outside. Mermaid ignored the inner direction without an error.
+- A line runs over a box's name. It happened in Mermaid, and in D2's ELK and dagre. D2's TALA avoided it.
+- You want some boxes at fixed positions, or one box near another (`top` / `left` and `near` in D2's TALA).
+- There are many boxes and you want to choose the engine that lays them out (section 2).
 
-D2 にするなら、エンジンは次のように選びます。
+With D2, choose the engine like this.
 
-| 図 | エンジン | 決め手 |
+| Figure | Engine | What decides it |
 |---|---|---|
-| 一方向に流れる長い DAG、戻る辺のある手順、何度も描き直す大きい図 | **ELK** | 層に積む。入口が先頭に来る。速い。1 つ足しても配置があまり動かない |
-| 箱の入れ子（アーキテクチャ）。箱ごとに向きを変える、一部の位置を固定する、別の箱の近くに置く | **TALA** | 後ろの 3 つは TALA しかできない。箱の名前の上に線を通さない |
+| A long DAG flowing one way, steps with an edge going back, a large figure drawn again and again | **ELK** | It stacks layers. The entry comes first. Fast. Adding one thing moves the layout little |
+| Nested boxes (architecture). A direction per box, some positions fixed, a box near another | **TALA** | Only TALA does the last three. It does not run a line over a box's name |
 
-dagre は、このサンプルでは ELK に勝る場面がありませんでした。
-描ける機能は ELK と同じで、速さも同じくらい、線が箱の名前を通る失敗も同じく起きます。
+In these samples dagre never did better than ELK.
+It draws the same features, at about the same speed, and makes the same failure of running a line over a box's name.
 
-**図が道具の出力を写すとき**（TLC の状態グラフ、反例の手順、import グラフ）も、形式は同じ順で選びます。
-違うのは、`.mmd` / `.d2` と事実シート（`*.facts.json`）を手で書かず、道具の出力からスクリプトで作ることです（例：`tlc-to-mermaid.mjs`）。
-`figure-check.mjs` が、事実シートの `edges` とソースの辺がちょうど一致するかを照合します。
+**When a figure copies a tool's output** (TLC's state graph, the steps of a counterexample, an import graph), the format is chosen in the same order.
+The difference: the `.mmd` / `.d2` and the fact sheet (`*.facts.json`) are not written by hand but made from the tool's output by a script (for example `tlc-to-mermaid.mjs`).
+`figure-check.mjs` checks that the fact sheet's `edges` and the source's edges are exactly the same.
 
 ---
 
-## 1. Mermaid で足りるか：測った結果
+## 1. Is Mermaid enough: what was measured
 
-D2 のサンプルと同じ構造を Mermaid の flowchart で書き、`figure-check.mjs` に通しました。
+The same structures as the D2 samples were written as Mermaid flowcharts and run through `figure-check.mjs`.
 
 <!-- output: compare -->
 ```
@@ -56,28 +71,28 @@ mermaid（同じサンプルを Mermaid の flowchart で）
   中の箱同士をサブグラフをまたいでつなぐ：✗ サブグラフの中も横に並んだ（direction TB が無視された）
 ```
 
-- **戻る辺のある手順（loop）は、Mermaid で足りました。** 検査の ✗ は 0 です（下の図 0）。こういう図は Mermaid にします。
-- **サブグラフの中の向きは、中の箱が外とつながると無視されます。** 「ビルド」の中の「固める」から「配布」の中の「送る」へ辺を引くと、`direction TB` を書いたサブグラフの中も横一列になりました。エラーは出ません。
-  同じつなぎ方でも、D2 の TALA は中を縦に保ちました（下）。
-- **アーキテクチャ図では、サブグラフの名前「データ」の上を線が通りました。** D2 の ELK / dagre と同じ失敗です。TALA では起きませんでした（2 節の `check`）。
-- 横に長い DAG は、Mermaid でもスマホで 3px になりました。D2 と同じく、縦に流します。
+- **Steps with an edge going back (loop) were fine in Mermaid.** The check's ✗ count is 0 (figure 0 below). A figure like this is Mermaid's.
+- **The direction inside a subgraph is ignored once a box inside is connected to the outside** (the last two lines: subgraphs connected to each other kept `direction TB`; boxes connected across subgraphs lost it). With an edge from `固める` inside the build subgraph to `送る` inside the distribution subgraph, the subgraph that says `direction TB` also came out as one row. No error.
+  With the same connection, D2's TALA kept the inside vertical (below).
+- **In the architecture figure a line ran over the subgraph's name `データ`** (`through`). The same failure as D2's ELK and dagre. It did not happen with TALA (`check` in section 2).
+- A DAG that is long sideways came out at 3px on a phone in Mermaid too (`tiny`). As with D2, let it flow downwards.
 
 <!-- output: compare -->
 ```
   tala  中の箱同士を箱をまたいでつなぐ（固める -> 送る）と ✓ 中が縦に並んだ
 ```
 
-GitHub の Markdown は Mermaid のコードブロックを図として描きます（[GitHub Docs: Creating diagrams](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)）。
-PR の説明に置く図は、Mermaid で足りるなら Mermaid が一番安く済みます。
-このリポジトリの資料では、`figures/<name>.mmd` を `figure-check.mjs --write` が `<name>.svg` にし、Markdown からはその SVG を参照します。
+GitHub's Markdown draws a Mermaid code block as a figure ([GitHub Docs: Creating diagrams](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)).
+For a figure in a PR's description, Mermaid is the cheapest when it is enough.
+In this repository's documents, `figure-check.mjs --write` turns `figures/<name>.mmd` into `<name>.svg`, and the Markdown refers to that SVG.
 
 ---
 
-## 2. D2 のエンジン：測った結果
+## 2. D2's engines: what was measured
 
-`samples/` の 5 つの D2 を、3 つのエンジンで描いて比べました。
+The five D2 files in `samples/` were drawn with the three engines and compared.
 
-### 描けるもの
+### What can be drawn
 
 <!-- output: compare -->
 ```
@@ -94,13 +109,13 @@ nested（箱ごとの direction: down が守られたか）
   elk   grid-columns: 1 に替えると ✓ 中が縦に並んだ
 ```
 
-固定位置と `near: 別の箱` は、ELK と dagre ではエラーになります。気づけます。
+Fixed positions and `near` another box are errors in ELK and dagre. You notice.
 
-**箱ごとの direction は、エラーになりません。** ELK と dagre は、中の `direction: down` をエラーを出さずに無視し、外の向きで並べます。
-`d2 validate` も通るので、図を見るまで気づけません。
-ELK のまま箱の中を縦にしたいなら、`direction: down` の代わりに `grid-columns: 1` を書きます。
+**A direction per box is not an error.** ELK and dagre ignore the inner `direction: down` without an error and lay the inside out in the outer direction (`nested`).
+`d2 validate` passes too, so you do not notice until you look at the figure.
+To get a vertical inside while staying on ELK, write `grid-columns: 1` in place of `direction: down` (the last line).
 
-### 起きた失敗
+### The failures that happened
 
 <!-- output: compare -->
 ```
@@ -118,11 +133,11 @@ check（figure-check の ✗）
   pipeline elk   ✗ tiny（mobile） "checkout" 5.0px, "install" 5.0px, "lint" 5.0px
 ```
 
-- **TALA は、direction を書かないと入口が上に来ないことがある。** アーキテクチャ図で、データ層が一番上、ブラウザが一番下になりました。流れを上から読ませたいときは `direction: down` を書きます。
-- **ELK と dagre は、箱の名前（エッジ・サービス・データ）の上に線を通す。** 箱をまたぐ線が、上端の中央にある名前を横切ります。TALA では起きませんでした。
-- **横に長い DAG は、エンジンによらずスマホで読めない。** 16 本の辺の CI パイプラインを `direction: right` で描くと、375px 幅では文字が 4〜5px になりました。縦に流せば通ります（3 節の図 2）。
+- **Without a direction, TALA may not put the entry at the top** (`entry`: whether the entry came first in the flow). In the architecture figure the data layer came out on top and the browser at the bottom. Write `direction: down` when the flow is to be read from the top.
+- **ELK and dagre run lines over the boxes' names** (`エッジ`, `サービス`, `データ`). A line crossing boxes cuts through the name at the middle of the top edge. It did not happen with TALA.
+- **A DAG that is long sideways cannot be read on a phone, whatever the engine.** A CI pipeline of 16 edges drawn with `direction: right` had 4 to 5px text at 375px wide. Flowing downwards, it passes (figure 2 in section 3).
 
-### 足したときの動きと、seed
+### What moves when something is added, and the seed
 
 <!-- output: compare -->
 ```
@@ -137,14 +152,16 @@ seeds（TALA）
   ファイルの vars に tala-seeds: [5]：✗ "tala-seeds" needs a value
 ```
 
-- TALA は、同じ入力と同じ seed なら毎回同じ図になります。
-- ただし、seed を変えると配置がすべて変わります（9 通りの seed で 9 通り）。1 つ足しても大きく動きます。公式の記事が書いている弱点のとおりです。
-- レビューで差分を見る図や、少しずつ育てる図には、ELK のほうが向いています。
-- **気に入らない配置は、seed を変えて選び直す。** 図 1 は、既定の seed でブラウザからの 2 本が 1 点で分かれ、CDN と API Gateway の間の矢印に見えました。最初は目で見つけ、seed 4〜9 を並べて見比べて 5 を選びました。
-  いまは、この種の失敗を `figure-check.mjs` が矢印の検査（arrows）で落とします。候補を並べる手順は 4 節にあります。
-- v0.9.0 では、seed をファイルの `vars` に書けません（上の `needs a value`）。このリポジトリでは、ファイルに `# d2-flags: --tala-seeds=5` の行を書き、`figure-check.mjs` がそれを d2 に渡します。
+`stable` is how far the original boxes moved, against the figure's diagonal, when one thing was added to the architecture figure: a box inside, a box outside, a line. `seeds`: the same input and the default seed twice gave the same SVG; seeds 1 to 9 gave nine layouts; a seed in the file's `vars` is refused.
 
-### 速さ
+- With the same input and the same seed, TALA gives the same figure every time.
+- Change the seed and the whole layout changes (nine seeds, nine layouts). Adding one thing also moves a lot. It is the weakness the official article names.
+- For a figure whose diff is read in review, or one that grows a little at a time, ELK suits better.
+- **A layout you do not like is chosen again by changing the seed.** With the default seed, figure 1's two lines from the browser split at one point and looked like an arrow between the CDN and the API Gateway. It was first found by eye; seeds 4 to 9 were laid side by side and 5 was chosen.
+  This kind of failure is now caught by `figure-check.mjs`'s arrow check (arrows). How to lay the candidates out is in section 4.
+- In v0.9.0 the seed cannot be written in the file's `vars` (`needs a value` above). In this repository the file carries a line `# d2-flags: --tala-seeds=5`, and `figure-check.mjs` passes it to d2.
+
+### Speed
 
 <!-- output: compare -->
 ```
@@ -155,16 +172,18 @@ time（描画時間の倍率。箱 10 個のときを 1 とする）
   箱 40 個で TALA は ELK の 10 倍以上
 ```
 
-参考までに、この環境で 3 回測ったときは、箱 40 個で TALA が 4〜5 秒、ELK が 0.1 秒未満でした（実測値は環境で変わるので、照合はしていません）。
-エージェントが描き直すループを回すなら、箱が数十を超える図は ELK にします。
+`time` is the rendering time as a multiple of the time for 10 boxes: at 40 boxes TALA takes 8 times or more, ELK and dagre under 3 times, and TALA is 10 times ELK or more.
+
+For reference, three runs in this environment gave 4 to 5 seconds for TALA at 40 boxes and under 0.1 second for ELK (measured times change with the environment, so `verify-doc` does not check these).
+If an agent runs a loop of drawing again, a figure with more than a few dozen boxes goes to ELK.
 
 ---
 
-## 3. サンプル
+## 3. Samples
 
-### 図 0：戻る辺のある手順（Mermaid で済む）
+### Figure 0: steps with an edge going back (Mermaid is enough)
 
-![Mermaid で描いた手順。変更を書き、テストを回し、通ればレビュー、落ちれば直してもう一度。レビューで承認されればマージ](figures/loop.svg)
+![Steps drawn with Mermaid. Write the change, run the tests; when they pass, review; when they fail, fix and go again. Approved in review, it is merged](figures/loop.svg)
 
 <!-- source: figures/loop.mmd -->
 ```mermaid
@@ -173,11 +192,11 @@ flowchart TD
   test -->|通る| review[レビュー]
 ```
 
-箱の入れ子も配置の指定も要らない図なので、Mermaid で足ります。
+No nested boxes and no layout to specify, so Mermaid is enough.
 
-### 図 1：アーキテクチャ（TALA）
+### Figure 1: architecture (TALA)
 
-![TALA で描いたアーキテクチャ図。ブラウザとアプリがエッジに入り、サービスを経てデータ層に届く。箱の名前の上を線が通らない](figures/arch.svg)
+![An architecture figure drawn with TALA. The browser and the app enter the edge, go through the services and reach the data layer. No line runs over a box's name](figures/arch.svg)
 
 <!-- source: figures/arch.d2 -->
 ```d2
@@ -185,12 +204,12 @@ flowchart TD
 direction: down
 ```
 
-TALA を選んだ理由は、箱の入れ子があることと、流れの向きがはっきりしないことです。
-`direction: down` を書いたのは、入口を上にするためです。
+TALA was chosen because the boxes are nested and the direction of the flow is not obvious.
+`direction: down` is there to put the entry at the top.
 
-### 図 2：長い DAG（ELK、縦に流す）
+### Figure 2: a long DAG (ELK, flowing downwards)
 
-![ELK で縦に流した CI パイプライン。install から lint・typecheck・build に分かれ、gate で合流して prod へ](figures/pipeline.svg)
+![A CI pipeline flowing downwards with ELK. From install it splits into lint, typecheck and build, joins at gate and goes to prod](figures/pipeline.svg)
 
 <!-- source: figures/pipeline.d2 -->
 ```d2
@@ -202,25 +221,25 @@ vars: {
 direction: down
 ```
 
-ELK は、分岐を同じ層に揃え、合流を 1 か所（gate）に集めます。
-横に流すとスマホで文字が潰れるので、縦に流しました。
+ELK lines the branches up in one layer and gathers the join in one place (gate).
+Flowing sideways crushes the text on a phone, so it flows downwards.
 
-### 図 3：箱ごとに向きを変える（TALA）
+### Figure 3: a direction per box (TALA)
 
-![外は横、中は縦。ビルドの箱の中は取得・コンパイル・固めるが縦に並び、配布の箱へ横に進む](figures/nested-dir.svg)
+![Horizontal outside, vertical inside. Inside the build box, fetch, compile and bundle stand in a column, and the flow goes sideways to the distribution box](figures/nested-dir.svg)
 
-同じファイルを ELK で描くと、箱の中も横一列になります（2 節の `nested`）。
+The same file drawn with ELK has the inside of the boxes in one row too (`nested` in section 2).
 
-### 図 4：時間の順序（sequence_diagram）
+### Figure 4: order in time (sequence_diagram)
 
-![クライアントが API に注文し、API が DB に BEGIN・INSERT・COMMIT を送り、クライアントに 201 を返す](figures/sequence.svg)
+![The client sends an order to the API, the API sends BEGIN, INSERT and COMMIT to the DB and returns 201 to the client](figures/sequence.svg)
 
-TLC の反例のように道具が順序を出せるなら、その出力から図と事実シートを作って照合します。
-道具の出力が無い説明用の順序なら、手で書いたこれで足ります。
+When a tool can give the order, as with a TLC counterexample, the figure and the fact sheet are made from that output and compared.
+For an order that only illustrates and has no tool output behind it, this one written by hand is enough.
 
-### 図 5：アイコンつきのアーキテクチャ（D2 + ELK）
+### Figure 5: architecture with icons (D2 + ELK)
 
-![ブラウザとアプリが注文へ、ブラウザが認証へ。注文は決済と Postgres へ、認証は Redis へ、決済は Postgres へ。箱には線のアイコン、Postgres と Redis はロゴ](figures/arch-icons.svg)
+![The browser and the app go to orders, the browser to auth. Orders go to payments and Postgres, auth to Redis, payments to Postgres. Line icons on the boxes; Postgres and Redis are logos](figures/arch-icons.svg)
 
 <!-- source: figures/arch-icons.d2 -->
 ```d2
@@ -230,13 +249,13 @@ pay: 決済 {icon: ./icons/credit-card.svg}
 pg: Postgres {shape: image; icon: ./icons/postgresql.svg; width: 72; height: 72}
 ```
 
-アイコンは `icons.mjs add lucide:shopping-cart` のように置きました。出典とライセンスは `figures/icons/ICONS.md` にあります。
-箱の中には線のアイコン（lucide）、製品そのものにはロゴ（logos）を使いました。
-ロゴは `shape: image` で大きさを決めています。決めないと、ロゴが図の中で一番大きくなりました。
+The icons were placed with commands like `icons.mjs add lucide:shopping-cart`. Their sources and licenses are in `figures/icons/ICONS.md`.
+Line icons (lucide) go inside boxes; a logo (logos) stands for the product itself.
+The logos have their size set with `shape: image`. Without it, the logo was the largest thing in the figure.
 
-### 図 6：アイコンつきの流れ（Mermaid）
+### Figure 6: a flow with icons (Mermaid)
 
-![利用者から API、API から Postgres へ。それぞれアイコンつき](figures/flow-icons.svg)
+![From the user to the API, from the API to Postgres, each with an icon](figures/flow-icons.svg)
 
 <!-- source: figures/flow-icons.mmd -->
 ```mermaid
@@ -246,40 +265,40 @@ flowchart LR
   db@{ icon: "logos:postgresql", label: "Postgres", pos: "b" }
 ```
 
-Mermaid からは `<set>:<name>` で書きます。`figure-check.mjs` が、プロジェクトに入っているアイコンセットを Mermaid に登録して描きます。
-GitHub の Markdown で描かれる Mermaid には、このアイコンセットは登録されていません。PR の本文に貼るなら、アイコンを使わないか、SVG にして添付します。
+In Mermaid an icon is written as `<set>:<name>`. `figure-check.mjs` registers the icon sets installed in the project with Mermaid and draws.
+The Mermaid that GitHub's Markdown draws does not have these icon sets. For a PR's body, use no icons, or attach the SVG.
 
 ---
 
-## 4. 形式ごとに、最初に確かめること
+## 4. What to check first, format by format
 
-| 道具 | 最初に確かめること | 確かめ方 |
+| Tool | What to check first | How |
 |---|---|---|
-| Mermaid | サブグラフの中の向きが効いているか。サブグラフの名前を線が通っていないか | 図を見る。`figure-check.mjs` の `through` |
-| 道具の出力を写す図（どの形式でも） | 図が道具の出力と一致するか | 事実シートを道具から作り、`figure-check.mjs` の facts（`edges` はソースの辺とちょうど一致） |
-| D2 + TALA | 入口が上か。線の分かれ目が別の矢印に見えないか | `direction` を書く。`figure-check.mjs` の arrows（shared）。落ちたら `figure-variants.mjs` で seed を並べる |
-| D2 + ELK / dagre | 箱の名前を線が通っていないか。箱ごとの direction を書いていないか | `figure-check.mjs` の `through`。direction は図を見る |
-| D2（どのエンジンでも） | スマホ幅で文字が 9px 以上あるか | `figure-check.mjs` の `tiny`。長い流れは縦にする |
-| SVG / HTML | ダークで区別がつくか。スマホで 1 列に落ちるか | `figure-check.mjs` のシート（ライト・ダーク・スマホ） |
+| Mermaid | Does the direction inside a subgraph hold? Does a line run over a subgraph's name? | Look at the figure. `through` in `figure-check.mjs` |
+| A figure copying a tool's output (any format) | Does the figure agree with the tool's output? | Make the fact sheet from the tool; facts in `figure-check.mjs` (`edges` exactly equal to the source's edges) |
+| D2 + TALA | Is the entry at the top? Does the point where lines split look like another arrow? | Write `direction`. arrows (shared) in `figure-check.mjs`. If it fails, lay seeds side by side with `figure-variants.mjs` |
+| D2 + ELK / dagre | Does a line run over a box's name? Did you write a direction per box? | `through` in `figure-check.mjs`. For the direction, look at the figure |
+| D2 (any engine) | Is the text 9px or more at phone width? | `tiny` in `figure-check.mjs`. A long flow goes downwards |
+| SVG / HTML | Can things be told apart in dark? Does it fall to one column on a phone? | The sheet of `figure-check.mjs` (light, dark, phone) |
 
-### D2 と Mermaid は、描いてから見て、配置を選び直す
+### D2 and Mermaid: draw, look, and choose the layout again
 
-D2 と Mermaid で書くのは、意味（箱と辺）だけです。配置は道具が決めます。
-意味が正しくても、描いてみると不自然な配置や、どこからどこへ行くのか読めない矢印になることがあります。
-そこで、描くたびに次の 3 つをします。
+What you write in D2 and Mermaid is the meaning only (boxes and edges). The tool decides the layout.
+With the meaning right, the drawing can still come out as an unnatural layout, or as arrows that cannot be read from where to where.
+So do these three every time you draw.
 
-1. `figure-check.mjs` を通す。矢印の検査（arrows）が、2 本の辺が長く重なって走るものと、辺が関係のない箱を突き抜けるものを落とします。
-2. 2 枚の画像を目で見る。図全体のシート（ライト・ダーク・スマホ）と、矢印を 1 本ずつ赤くした辺のシートです。辺のシートでは、赤い線だけを見て「どこから、どこへ」と読めるかを確かめます。
-3. 配置が不自然なら、`figure-variants.mjs` で候補を並べ、点数を見たうえで、目で選ぶ。
+1. Run `figure-check.mjs`. The arrow check (arrows) fails two edges that run on top of each other for long, and an edge that goes through a box it has nothing to do with.
+2. Look at two images: the sheet of the whole figure (light, dark, phone), and the sheet of edges, with one arrow at a time in red. On the edge sheet, check that the red line alone reads as "from where, to where".
+3. If the layout is unnatural, lay candidates side by side with `figure-variants.mjs`, look at the scores, and choose by eye.
 
-図 1 を既定の seed で描いた版（`tests/figure-check/fixtures/arrows-shared.d2`）では、1 で次のように落ちます。
+The version of figure 1 drawn with the default seed (`tests/figure-check/fixtures/arrows-shared.d2`) fails step 1 like this (the two edges from the browser run on top of each other for 222px, and the point where they split looks like an arrow between two other boxes).
 
 <!-- output: arrows-shared -->
 ```
   ✗ arrows: browser->edge.cdn と browser->edge.gw が 222px 重なって走る。分かれ目が、別の箱同士をつなぐ矢印に見える
 ```
 
-3 で候補を並べると、次の順になります。
+Laying the candidates out in step 3 gives this order.
 
 <!-- output: arrows-variants -->
 ```
@@ -289,58 +308,58 @@ D2 と Mermaid で書くのは、意味（箱と辺）だけです。配置は�
   #5 TALA seed 1                減点  3  矢印 10  △ 0   arrows: browser->edge.cdn と browser->edge.gw が 222px 重なって走る。
 ```
 
-- 減点は、✗ に重みを付けて足したものです。潰れた文字、重なる 2 本の辺は重くしています。矢印の点数は、交差と遠回りの数です。どちらも小さいほど良い候補です。
-- 機械の順位は、明らかに悪い候補を落とすためのものです。seed 6 と 5 はどちらも ✗ が 0 で、違いは交差が 1 か所多いかどうかです。図 1 は、目で見て 5 を選んだまま置いています。
-- どの候補にも ✗ が残るなら、配置の選び直しでは直りません。図の構造（箱の分け方・向き・ラベルの長さ）を変えるか、Mermaid なら D2 に移します。
+- The penalty (`減点`) is the ✗ marks, weighted and summed. Crushed text and two overlapping edges weigh more. The arrow score (`矢印`) counts crossings and detours. For both, smaller is better.
+- The machine's ranking is there to drop the clearly bad candidates. Seeds 6 and 5 both have no ✗, and differ by one crossing. Figure 1 stays at 5, as chosen by eye.
+- If every candidate keeps a ✗, choosing the layout again will not fix it. Change the figure's structure (how the boxes are divided, the direction, the length of the labels), or move from Mermaid to D2.
 
-手順の全体は `skills/explainer/references/figures.md` の「手で描く図」にあります。
+The whole procedure is under `手で描く図` (figures drawn by hand) in `skills/explainer/references/figures.md`.
 
 ---
 
-## 理解度チェック
+## Check your understanding
 
-1. サービスの箱の中だけ縦に並べたい。ELK で `direction: down` を書いたら、エラーは出ずに横一列になった。何が起きていて、どうするか。
+1. You want only the inside of the services box to be vertical. You wrote `direction: down` with ELK, and it came out as one row with no error. What happened, and what do you do?
 
-<details><summary>答え</summary>
+<details><summary>Answer</summary>
 
-ELK と dagre は、箱ごとの `direction` をエラーを出さずに無視し、外の向きで並べます。
-箱ごとに向きを変えられるのは TALA だけです。
-TALA に切り替えるか、ELK のまま箱の中に `grid-columns: 1` を書きます（2 節の `nested`。ELK でも縦に並びました）。
-
-</details>
-
-2. 60 個の箱のモジュール依存図を、エージェントに何度も描き直させたい。どのエンジンにするか。
-
-<details><summary>答え</summary>
-
-ELK です。
-TALA は箱の数に対して描画時間が急に伸びます（箱 40 個で ELK の 10 倍以上）。1 つ足すだけで配置が大きく変わるので、描き直すたびに図の見た目も変わります。
-依存図は一方向の流れなので、ELK の層で読めます。
+ELK and dagre ignore a `direction` per box without an error and lay the inside out in the outer direction.
+Only TALA can change the direction per box.
+Switch to TALA, or stay on ELK and write `grid-columns: 1` inside the box (`nested` in section 2: it came out vertical on ELK too).
 
 </details>
 
-3. TALA で描いたアーキテクチャ図で、`figure-check.mjs` が「2 本が重なって走る」で落ちた。辺のシートを見ると、分かれ目が別の箱同士をつなぐ矢印に見える。どう直すか。
+2. You want an agent to draw a module dependency figure of 60 boxes again and again. Which engine?
 
-<details><summary>答え</summary>
+<details><summary>Answer</summary>
 
-`figure-variants.mjs` で seed とエンジンの候補を並べ、✗ の無い候補の中から、目で見て選びます。
-選んだ seed はファイルに `# d2-flags: --tala-seeds=N` と書き、描き直しても同じ図にします。v0.9.0 は、ファイルの `vars` に seed を書けません。
-選んだ理由は、ソースのコメントに 1 行残します。
-どの候補にも ✗ が残るなら、箱の分け方か向きを変えます。
+ELK.
+TALA's rendering time grows steeply with the number of boxes (10 times ELK or more at 40 boxes). Adding one thing changes the layout a lot, so the figure looks different every time it is drawn.
+A dependency figure flows one way, so ELK's layers read well.
 
 </details>
 
-4. PR の説明に、レビューの手順（書く → テスト → レビュー → 直す → もう一度）の図を置きたい。どの道具にするか。同じ PR で、サービスの箱の中を縦に並べ、その中の箱を別の箱の中とつなぐアーキテクチャ図も置きたい。そちらはどうするか。
+3. An architecture figure drawn with TALA failed `figure-check.mjs` with "two edges run on top of each other". On the edge sheet, the point where they split looks like an arrow between two other boxes. How do you fix it?
 
-<details><summary>答え</summary>
+<details><summary>Answer</summary>
 
-手順の図は Mermaid です。
-戻る辺のある手順は Mermaid で崩れず（1 節の loop は ✗ 0）、GitHub の Markdown がそのまま描きます。
+Lay the candidates of seeds and engines side by side with `figure-variants.mjs`, and choose by eye among those with no ✗.
+Write the chosen seed in the file as `# d2-flags: --tala-seeds=N`, so that drawing again gives the same figure. In v0.9.0 a seed cannot be written in the file's `vars`.
+Leave one line in the source's comment saying why it was chosen.
+If every candidate keeps a ✗, change how the boxes are divided, or the direction.
 
-アーキテクチャ図は D2 の TALA です。
-Mermaid は、サブグラフの中の箱が外とつながると、中の `direction` をエラーを出さずに無視します。
-D2 の ELK / dagre は、箱ごとの direction をそもそも無視します。
-同じつなぎ方で中の向きを保てたのは TALA だけでした。
-PR には、D2 から作った SVG を添付します。
+</details>
+
+4. In a PR's description you want a figure of the review steps (write → test → review → fix → again). Which tool? In the same PR you also want an architecture figure where the inside of the services box is vertical and a box in it is connected to a box inside another. What about that one?
+
+<details><summary>Answer</summary>
+
+The steps are Mermaid.
+Steps with an edge going back hold in Mermaid (loop in section 1 has 0 ✗), and GitHub's Markdown draws them as they are.
+
+The architecture figure is D2's TALA.
+Mermaid ignores the inner `direction` without an error once a box inside a subgraph is connected to the outside.
+D2's ELK and dagre ignore a direction per box to begin with.
+Only TALA kept the inner direction with the same connection.
+Attach the SVG made from D2 to the PR.
 
 </details>

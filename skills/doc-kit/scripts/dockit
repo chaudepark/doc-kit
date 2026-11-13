@@ -25,6 +25,8 @@ STYLE = re.compile(r"<style([^>]*)>(.*?)</style>", re.S)
 CLASS = re.compile(r"""\bclass\s*=\s*(?:"([^"]*)"|'([^']*)')""")
 SELECTOR = re.compile(r"\.(-?[A-Za-z_](?:[\w-]|\\.)*)")
 KANA = re.compile("[\u3040-\u30ff]")
+# the page's language is read from its prose: an English page that quotes Japanese output stays English
+PROSE = re.compile(r"<(pre|code)\b.*?</\1>", re.S)
 OUTSIDE = re.compile(r"""<link\b[^>]*\bhref\s*=|<script\b[^>]*\bsrc\s*=|@import\b|url\(\s*["']?https?:""", re.I)
 
 
@@ -65,7 +67,7 @@ def wrap(args):
         '<!doctype html>\n<html lang="%s"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1"><title>%s</title>\n'
         "<style data-doc-kit>%s</style>\n%s</head>\n<body>\n<main class=\"doc%s\" id=\"all\">\n%s\n</main>\n</body></html>\n"
-    ) % (html.escape(args.lang or ("ja" if KANA.search(body) else "en")), html.escape(args.title), KIT.read_text(encoding="utf-8").strip(), own,
+    ) % (html.escape(args.lang or ("ja" if KANA.search(PROSE.sub("", body)) else "en")), html.escape(args.title), KIT.read_text(encoding="utf-8").strip(), own,
          " doc-prose" if args.prose else "", body.strip())
     pathlib.Path(args.out).write_text(page, encoding="utf-8")
     return 0
@@ -121,7 +123,7 @@ def main():
     w.add_argument("--title", required=True)
     w.add_argument("--css")
     w.add_argument("--prose", action="store_true")
-    w.add_argument("--lang", help="the page's language; without it, ja when the body has kana, else en")
+    w.add_argument("--lang", help="the page's language; without it, ja when the body has kana outside <pre> and <code>, else en")
     w.set_defaults(run=wrap)
     c = sub.add_parser("check")
     c.add_argument("pages", nargs="+")

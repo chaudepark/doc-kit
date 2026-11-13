@@ -1,4 +1,6 @@
-# <img src="../../docs/assets/icons/slides.webp" width="32" height="32" alt="" align="top" /> d2-slides — the worked example
+# d2-slides — the worked example
+
+English | [日本語](README.ja.md)
 
 `deck.md` is a real deck: eight slides about the `d2-diagram` validation rounds,
 every figure a ```d2 fence laid out by TALA. `built/` is what the builder makes
@@ -6,30 +8,32 @@ from it, committed so the example can be opened and diffed without a `d2`
 install.
 
 ```sh
-npm run deck:example        # = build-deck.mjs examples/d2-slides/deck.md --out examples/d2-slides/built
+pnpm deck:example        # = build-deck.mjs examples/d2-slides/deck.md --out examples/d2-slides/built
 ```
 
 Open `built/index.html`; arrows and space move, `o` is the overview, `p` prints.
 
 Run that after any edit to `deck.md`: `tests/d2/d2-slides.test.mjs` compares the
-committed manifest and slide structure against a fresh build, and the
-`d2-slides` workflow compares every byte with the pinned `d2`. A committed
-build that has drifted from its source is worse than no committed build.
+committed manifest and slide structure against a fresh build. The figures'
+bytes are not compared there, because that needs the pinned `d2` (a CI
+workflow did it in the project this was taken from; this repository does not
+carry that workflow). A committed build that has drifted from its source is
+worse than no committed build.
 
 ## The gates, as run on this deck
 
 ```sh
-npx vlmkit check integrity examples/d2-slides/built/index.html
+pnpm exec vlmkit check integrity examples/d2-slides/built/index.html
 #   verdict: CLEAN — 1280x800 ink 82.0%, 768x900 44.0%, 375x700 27.9%
 
-npx vlmkit check integrity examples/d2-slides/built/print.html --viewports 1280
+pnpm exec vlmkit check integrity examples/d2-slides/built/print.html --viewports 1280
 #   verdict: CLEAN — 8 components, 96 text blocks
 
-npx vlmkit check copy examples/d2-slides/built/print.html \
+pnpm exec vlmkit check copy examples/d2-slides/built/print.html \
   --manifest examples/d2-slides/built/copy.txt --allow-invisible unknown
 #   manifest: 26 lines, missing 0
 
-npx vlmkit check a11y contrast examples/d2-slides/built/print.html
+pnpm exec vlmkit check a11y contrast examples/d2-slides/built/print.html
 #   inspected 133 text-bearing element(s) — 0 contrast failure(s)
 ```
 
@@ -38,10 +42,9 @@ stage centred as a grid item painted nothing at 375px, a percentage height
 inside a padded frame clipped 114px on every slide, and a centred split layout
 cut long bullets off at both ends. The skill file records each one.
 
-All four runs are the `d2-slides` workflow's steps, which also proves the gates
-still gate: it appends a sentence the deck never says to `copy.txt` (must report
-`copy-missing`) and shortens `--stage-h` to 260px (must report
-`clipped-content`), and fails if either exits 0.
+That the gates still gate can be checked too: append a sentence the deck never
+says to `copy.txt` (it must report `copy-missing`), and shorten `--stage-h` to
+260px (it must report `clipped-content`). If either exits 0, the gate is broken.
 
 ## The copy gate's `unknown` invisibility, reproduced
 
@@ -49,7 +52,7 @@ still gate: it appends a sentence the deck never says to `copy.txt` (must report
 lines are reported as `copy-invisible (reason: unknown)` while being plainly on
 the slide. It is reproducible with nothing but the builder:
 
-```sh
+````sh
 cat > /tmp/probe/deck.md <<'EOF'
 ---
 title: probe
@@ -67,7 +70,7 @@ a -> b
 ```
 EOF
 # → 3 invisible-only
-```
+````
 
 The same three lines with the markup removed pass, and so do shorter lines that
 carry the same markup, and so does one long line with markup among plain ones —

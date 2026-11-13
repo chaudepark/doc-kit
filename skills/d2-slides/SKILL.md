@@ -1,7 +1,7 @@
 ---
 name: d2-slides
 description: >-
-  Build a slide deck whose source is text and whose figures are laid out by TALA — one Markdown file with a ```d2 fence per figure, compiled to a self-contained HTML deck (keyboard nav, overview grid, print-to-PDF), each figure as its own SVG, and a copy manifest. The deck is a page, so vlmkit's own gates read it: `check integrity` for a slide that breaks or clips, `check copy --manifest` for text the frame cut off, `check a11y contrast` for a projector. Loop: write `deck.md` → build → gates → fix. Use when asked for slides, a deck, a talk, a presentation, a review walkthrough, or a figure-heavy explainer that has to be presented rather than read. Not for one diagram (`d2-diagram`) or a moving figure (`explanatory-animation`).
+  Build a slide deck whose source is text and whose figures are laid out by TALA — one Markdown file with a ```d2 fence per figure, compiled to a self-contained HTML deck (keyboard nav, overview grid, print-to-PDF), each figure as its own SVG, and a copy manifest. The deck is a page, so vlmkit's own gates read it: `check integrity` for a slide that breaks or clips, `check copy --manifest` for text the frame cut off, `check a11y contrast` for a projector. Loop: write `deck.md` → build → gates → fix. Use when asked for slides, a deck, a talk, a presentation, a review walkthrough, or a figure-heavy explainer that has to be presented rather than read. Not for one diagram (`d2-diagram`), a moving figure (this plugin has no skill for those), or a document page that is read rather than presented (`doc-kit`). A deck keeps its own look, not doc-kit's.
 ---
 
 # d2-slides
@@ -14,6 +14,10 @@ build is a pure function of the file. Nothing is dragged, so a slide can be
 reviewed in a diff, regenerated after a rename, and — because the output is an
 HTML page — **checked**. That last part is the point: a slide deck normally has
 no failing state, so nobody notices the bullet the frame cut in half.
+
+A deck's look is the builder's own, not doc-kit's: a slide is a fixed frame shown one at a
+time, not a page that is read. Do not restyle a deck with `kit.css`, and do not use a
+deck's styles on a document page.
 
 ```bash
 node <skill>/assets/build-deck.mjs deck.md --out built
@@ -169,11 +173,13 @@ the reason it gives.
   scored it with `deck-review` — fidelity near 1.00 and no `SPLIT`. This is the
   only step that sees a sentence broken into two blocks.
 
-## The same loop, in CI
+## The same loop, on the worked example
 
-This repo runs its own worked example through that loop on every change to the skill,
-the example or the three gates it uses, so the claim above is measured rather than
-asserted. Two halves, because they need different machines:
+The worked example went through that loop, so the claim above is measured rather than
+asserted. Two halves, because they need different machines. The first is in this
+repository's suite; the second ran as a CI workflow in the project this skill was taken
+from, and this repository does not carry that workflow: run its steps by hand
+(`examples/d2-slides/README.md` has the four commands).
 
 - **`tests/d2/d2-slides.test.mjs`** (in the ordinary suite, no `d2`, no browser) — the
   builder's decisions before a figure is drawn: where a slide ends (`---` inside a
@@ -181,7 +187,7 @@ asserted. Two halves, because they need different machines:
   text, the overflow warning naming the slide, a figure that does not compile failing
   the build, and `examples/d2-slides/built/` still matching its `deck.md`. `D2` points
   at a stub that echoes a fixed SVG — the builder already reads that variable.
-- **`.github/workflows/d2-slides.yml`** (real `d2` pinned at `v0.9.0`, real Chromium) —
+- **The gate runs** (real `d2` pinned at `v0.9.0`, real Chromium; not automated here) —
   the four gate runs above on a fresh build, plus a byte comparison against the
   committed build, plus two negative controls: a manifest line the deck does not say
   must be reported `copy-missing`, and a frame shortened to 260px must be reported
@@ -189,7 +195,8 @@ asserted. Two halves, because they need different machines:
   a gate that always passes.
 
 Regenerate the committed example with `pnpm deck:example` after editing its `deck.md` —
-the byte comparison is what keeps a committed build from drifting into a lie.
+the suite's comparison of the manifest and the slide structure is what keeps a committed
+build from drifting into a lie.
 
 ## What the gates found in this skill's own deck
 

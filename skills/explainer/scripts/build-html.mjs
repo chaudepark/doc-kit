@@ -31,8 +31,11 @@ const htmlName = (md) => (basename(md) === 'README.md' ? 'index.html' : basename
 const titleOf = (src) => src.match(/^# (.+)$/m)?.[1] ?? 'Explainer';
 const sources = pages.map((p) => readFileSync(p, 'utf8'));
 const book = pages.length > 1;
-// the page's language, read from its text: kana means Japanese, anything else is set as English
-const ja = (src) => /[\u3040-\u30ff]/.test(src);
+// the page's language, read from its prose: kana means Japanese, anything else is set as English.
+// Code is not prose: an English page that quotes a tool's Japanese output stays English.
+const ja = (src) => /[\u3040-\u30ff]/.test(src
+  .replace(/^ {0,3}(`{3,}|~{3,})[^\n]*\n[\s\S]*?^ {0,3}\1[`~]*[ \t]*$/gm, '') // a fence opens and closes at a line's start
+  .replace(/`[^`\n]*`/g, ''));
 const mdNames = new Set(pages.map((p) => basename(p)));
 
 function render(src) {
@@ -61,7 +64,9 @@ function render(src) {
   });
   // 本の中のページへのリンクを .html に
   md = md.replace(/\]\(([\w.-]+\.md)(#[^)]*)?\)/g, (all, file, hash = '') =>
-    mdNames.has(file) ? `](${htmlName(file)}${hash})` : all);
+    // a page that is not built with this one (the other language's README) is beside the source, one level up from dist/
+    // shortcut: read from the raw Markdown, so a link quoted inside code is rewritten too; parse with marked if that bites
+    mdNames.has(file) ? `](${htmlName(file)}${hash})` : `](../${file}${hash})`);
   // the kit's parts for what Markdown gives bare: a table scrolls sideways in its own box; a code block's language class is dropped
   const html = marked.parse(md)
     .replaceAll('<table>', '<div class="overflow-x-auto"><table class="table">').replaceAll('</table>', '</table></div>')

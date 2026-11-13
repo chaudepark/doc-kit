@@ -153,7 +153,7 @@ txt -> write: one change per round {
 
 ## Where it runs
 
-- `tests/d2-facts.test.mjs` drives the checker over **committed renders**, so CI gates it with no `d2` installed.
+- `tests/d2/d2-facts.test.mjs` drives the checker over **committed renders**, so CI gates it with no `d2` installed.
 - This deck is a page: `vlmkit check integrity`, `check copy --manifest`, `check a11y contrast` read it like any other.
 - The deck source is Markdown; every figure is a ```d2 fence laid out by TALA.
 

@@ -146,7 +146,7 @@ function findYomiyasu() {
 }
 const yomiyasu = findYomiyasu();
 console.log('japanese (yomiyasu)');
-if (!yomiyasu) console.log('  - yomiyasu not installed; skipped (npx skills add nanaism/yomiyasu)');
+if (!yomiyasu) console.log('  - yomiyasu not installed; skipped (https://github.com/nanaism/yomiyasu)');
 else for (const page of pages) {
   const r = spawnSync('python3', ['-I', yomiyasu, '--json', join(docDir, page)], { encoding: 'utf8' });
   let d;

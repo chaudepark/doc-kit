@@ -23,13 +23,15 @@ To update: `claude plugin marketplace update doc-kit`, then `claude plugin updat
 
 | Skill | You say | Claude does |
 |---|---|---|
-| `doc-kit` | "put this together as HTML", "make these pages look the same" | builds the page from the parts in the sample only, and checks it with `dockit`. Every other skill's look is this one |
+| `doc-kit` | "put this together as HTML", "make these pages look the same" | builds the page from the parts in the sample only, and checks it with `dockit`. The pages the other skills make take this look (a deck from `d2-slides` and the page `first-reader` builds of a read keep their own) |
 | `picture-manual` | "this manual is hard to follow", "make a cheat sheet" | turns a tool's documentation into cards: what I want → how → what comes out. The pictures are drawn from the tool's real output |
 | `explainer` | "explain this PR so that I understand it" | builds a persona of one reader and writes only what that reader does not know. Quoted output and figures are verified by tools |
 | `explainer-book` | "make it a tutorial in chapters" | chaptered learning material, checked for objectives, concept order, reading time and exercises |
 | `first-reader` | "read this before I publish it" | simulated readers go through the draft paragraph by paragraph, and report where they quit and what they remember the next day. It does not rewrite |
 | `d2-diagram` | "an architecture diagram in D2" | a D2 diagram laid out by TALA, held to a fact sheet |
 | `d2-slides` | "make slides of this" | an HTML deck with figures from one Markdown file, checked |
+
+Which one takes what: how to use a tool goes to `picture-manual`; understanding a concept, a change or a result goes to `explainer`; `doc-kit` is the look of both, and works alone on a page whose content is already decided.
 
 What was taken in from other projects is listed in [NOTICE.md](NOTICE.md). The files of `explainer` and `explainer-book` are written in Japanese; they write in the reader's language.
 
@@ -42,11 +44,11 @@ ask ─→ a skill sets the steps ─→ the body (parts only) ─→ one HTML f
      explainer, ...            sample (sample.html)    dark only         screenshots
 ```
 
-- **One look**: `skills/doc-kit/kit.css`, prebuilt from daisyUI 5 and Tailwind CSS 4. Fonts, text sizes (five of them), widths and colours are decided there and nowhere else. Pages are dark only.
+- **One look** for pages that are read (two exceptions: a slide deck, and the page `first-reader` builds of a read): `skills/doc-kit/kit.css`, prebuilt from daisyUI 5 and Tailwind CSS 4. Fonts, text sizes (five of them), widths and colours are decided there and nowhere else. Pages are dark only.
 - **Only the parts in the sample**: `skills/doc-kit/sample.html` is the list of parts a page may use. The build keeps only the classes the sample uses, so anything else does nothing on a page.
 - **Checked**: `dockit check` stops a page that uses a class the sample does not have, carries an old `kit.css`, names a picture's class like a part, heads a screen in other words than the card that opens it, or loads something from outside.
 - **One file**: a page opens offline and on a phone. The repository that uses the kit needs no Node and no build (`dockit` is Python 3.9, standard library only).
-- **Any language**: a page takes its language from its text (Japanese when it has kana, otherwise English), or from `--lang`. The fonts are the ones Mac, Windows and Linux already have for Latin and Japanese.
+- **Any language**: a page takes its language from its text (Japanese when its prose has kana, otherwise English; code is not counted), or from `--lang`. The fonts are the ones Mac, Windows and Linux already have for Latin and Japanese.
 
 A part is added to the sample in this repository, not on a page. The rule is to ask the owner first: few parts is the point.
 
@@ -99,7 +101,7 @@ Known: `figure-check` compares a Mermaid figure with its committed SVG byte for 
 | `skills/explainer/`, `skills/explainer-book/` | explanations for one reader, and books; `scripts/build-html.mjs` gives kit pages |
 | `skills/first-reader/` | simulated readers (Apache-2.0) |
 | `skills/d2-diagram/`, `skills/d2-slides/` | D2 diagrams and decks |
-| `docs/`, `examples/` | sample documents (which figure tool to use, data figures) and a sample deck |
+| `docs/`, `examples/` | sample documents (which figure tool to use, data figures) and a sample deck; each has `README.md` (English) and `README.ja.md` |
 | `tests/` | `test.sh` (the whole) and the imported skills' tests (`d2/`, `figure-check/`, `first-reader/`) |
 | `scripts/` | `build-kit.sh`, and `setup-d2.sh` / `setup-tla.sh` (fetch tools into `.tools/`) |
 | `.claude-plugin/` | the plugin and marketplace definitions |
