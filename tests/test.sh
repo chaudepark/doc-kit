@@ -45,9 +45,28 @@ python3 $dockit text skills/doc-kit/sample.html > "$tmp/sample.txt"
 grep -q '^# A page is made of these parts only$' "$tmp/sample.txt" && grep -q '^## Values side by side$' "$tmp/sample.txt" \
   && grep -q '^\[picture: the input\]$' "$tmp/sample.txt" || { echo "dockit text lost a heading or a picture's label" >&2; exit 1; }
 if grep -q '[<{]' "$tmp/sample.txt"; then echo "dockit text left markup or CSS in the text" >&2; exit 1; fi
-printf '<body><!-- a > b --><h2 title="a > b">One\nheading</h2><table><tr>\n<th>Key</th>\n<td>un<em>believ</em>able</td>\n</tr></table><figure><svg><svg><text>leak</text></svg><text>leak</text></svg><figcaption>Caption</figcaption></figure><img alt="a chart"><pre>a\n  b</pre></body>' > "$tmp/odd.html"
+printf '<body><!-- a > b --><h2 title="a > b">One\nheading</h2><table><tr>\n<th>Key</th>\n<td>un<em>believ</em>able</td>\n</tr></table><figure><svg><svg><text>leak</text></svg><text>leak</text></svg><figcaption>Caption</figcaption></figure><img alt="a chart"><pre>a\n  b</pre><nav><a>Start</a><a>The end</a></nav></body>' > "$tmp/odd.html"
 python3 $dockit text "$tmp/odd.html" > "$tmp/odd.txt"
-printf '## One heading\n\nKey | unbelievable |\n\n[picture]\n\nCaption\n\n[picture: a chart]\n\na\n  b\n' | cmp - "$tmp/odd.txt" || { echo "dockit text: nesting, a table, inline tags, a comment or code came out wrong" >&2; cat "$tmp/odd.txt" >&2; exit 1; }
+printf '## One heading\n\nKey | unbelievable |\n\n[picture]\n\nCaption\n\n[picture: a chart]\n\na\n  b\n\n- Start\n- The end\n' | cmp - "$tmp/odd.txt" || { echo "dockit text: nesting, a table, inline tags, a comment, code or a nav came out wrong" >&2; cat "$tmp/odd.txt" >&2; exit 1; }
+# a read by lookup: the home before pressing anything (folded parts closed, no screen's text), and each screen
+python3 $dockit lookup skills/doc-kit/sample.html -o "$tmp/lookup" >/dev/null
+grep -q '^\[folded\] The long steps' "$tmp/lookup/home.txt" || { echo "dockit lookup: a folded part lost its mark" >&2; exit 1; }
+if grep -q 'Long steps and a glossary\|The value.s name, and what happens' "$tmp/lookup/home.txt"; then echo "dockit lookup: the home shows what is folded, or a screen's text" >&2; exit 1; fi
+grep -q '^## Values side by side$' "$tmp/lookup/screen-values.txt" && grep -q "^hold: The value's name" "$tmp/lookup/screen-values.txt" || { echo "dockit lookup: a screen's text is missing" >&2; exit 1; }
+grep -q "^Values side by side$(printf '\t')screen-values.txt$(printf '\t')screen$" "$tmp/lookup/index.txt" || { echo "dockit lookup: the index does not lead from a heading to its file" >&2; exit 1; }
+grep -q '^### \[1\] Prepare$' "$tmp/sample.txt" || { echo "dockit text: a badge stuck to the word after it" >&2; exit 1; }
+grep -q 'Long steps and a glossary' "$tmp/lookup/fold-1.txt" || { echo "dockit lookup: what a folded part holds was written nowhere" >&2; exit 1; }
+# the shapes the sample does not have: a screen ends at its own </section> (the footer stays on the home), single
+# quotes, a contents list, a part that is open, a card's before-and-after left out at a glance
+printf '%s' '<body><main class="doc"><div class="doc-home" id="home"><nav><ul><li><a href="#a">One</a></li></ul></nav><a class="card" href="#a"><h3 class="card-title">One</h3><div class="doc-ba"><div><span>now</span></div></div></a><details><summary>More</summary><p>Hidden words</p></details><details open><summary>Shown</summary><p>Open words</p></details></div><section id='\''a'\'' class='\''doc-view'\''><h2>One</h2><section><p>Inner</p></section><p>Last of one</p></section><footer><p>Foot</p></footer></main></body>' > "$tmp/shapes.html"
+python3 $dockit lookup "$tmp/shapes.html" -o "$tmp/shapes" >/dev/null
+printf -- '- One\n\n### One [opens a screen]\n\n[folded] More\n\n[folded] Shown\n\nOpen words\n\nFoot\n' | cmp - "$tmp/shapes/home.txt" || { echo "dockit lookup: the home of the odd shapes came out wrong" >&2; cat "$tmp/shapes/home.txt" >&2; exit 1; }
+printf '## One\n\nInner\n\nLast of one\n' | cmp - "$tmp/shapes/screen-a.txt" || { echo "dockit lookup: a screen did not end at its own end" >&2; cat "$tmp/shapes/screen-a.txt" >&2; exit 1; }
+printf 'Hidden words\n' | cmp - "$tmp/shapes/fold-1.txt" || { echo "dockit lookup: a folded part's text is wrong" >&2; exit 1; }
+# a page that is not in screens: each <h2> is a place to land
+printf '<body><p>Top</p><h2>First</h2><p>one</p><h2>Second</h2><p>two</p></body>' > "$tmp/plain.html"
+python3 $dockit lookup "$tmp/plain.html" -o "$tmp/plain" >/dev/null
+printf 'Top\n\n## First [opens a screen]\n## Second [opens a screen]\n' | cmp - "$tmp/plain/home.txt" && printf '## Second\n\ntwo\n' | cmp - "$tmp/plain/screen-2.txt" || { echo "dockit lookup: a page without screens came out wrong" >&2; exit 1; }
 # explainer's page builder gives a kit page: a sample document built with it passes the check
 node skills/explainer/scripts/build-html.mjs docs/figure-cheatsheet/README.md >/dev/null
 python3 $dockit check docs/figure-cheatsheet/dist/index.html

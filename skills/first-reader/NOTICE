@@ -14,6 +14,9 @@ Changes in doc-kit (2026-11):
 - README.ja.md added (a Japanese translation of README.md).
 - scripts/skim.py: the scanner's view cuts text written without spaces (Japanese, Chinese) by characters, and a
   sentence also ends at an ideographic full stop (tests/first-reader/test_cjk.py).
+- references/lookup.md added: the procedure for a page that is looked things up in (a manual, a cheat sheet);
+  SKILL.md's Step 0 points to it.
+- scripts/skim.py: the word count in the stats line counts text written without spaces (as feed.py does).
 - SKILL.md: the description and the user contract say that the other skills of the doc-kit plugin run this
   as their last step without being asked.
 - Tests live in tests/first-reader/ of the doc-kit repository.

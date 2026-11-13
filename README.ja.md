@@ -49,7 +49,7 @@ Claude Code の中からは `/plugin marketplace add chaudepark/doc-kit` と `/p
 - **読むページの見た目は 1 つ**（例外は、スライドと、`first-reader` が作る読みの記録のページ）：`skills/doc-kit/kit.css`（daisyUI 5 と Tailwind CSS 4 から作り済み）。フォント、文字の大きさ（5 種類）、幅、色はここだけで決まります。ページはダークだけです。
 - **部品は見本にあるものだけ**：`skills/doc-kit/sample.html` が、使ってよい部品の一覧です。ビルドに残るのは見本が使うクラスだけなので、見本に無いものはページで効きません。
 - **検査**：`dockit check` が、見本に無いクラス、古い `kit.css`、部品と同じ名前の絵のクラス、カードと着いた画面で違う見出し、外部の読み込みを止めます。
-- **渡す前に読ませる**：`first-reader` の模擬読者が、どのページも先に読みます（マニュアルは、使う人が持ってくる「やりたいこと」で探させ、文章は頭から読ませる。本は、最初の章と演習の章）。つまずいた所は、渡す前に直します。省くのは、言葉も順序も変えない直しのときと、あなたが省くと言ったときだけです。
+- **渡す前に読ませる**：`first-reader` の模擬読者が、どのページも先に読みます（マニュアルは、使う人が持ってくる「やりたいこと」で探させる。手順は `skills/first-reader/references/lookup.md`。文章は頭から読ませる。本は、最初の章と演習の章）。つまずいた所は、渡す前に直します。省くのは、言葉も順序も変えない直しのときと、あなたが省くと言ったときだけです。
 - **1 ファイル**：できたページは、オフラインでもスマホでも開けます。使う側のリポジトリに Node もビルドも要りません（`dockit` は Python 3.9 の標準ライブラリだけ）。
 - **言語を問わない**：ページの言語は本文から決まります（地の文にかながあれば日本語、なければ英語。コードは数えません）。`--lang` でも指定できます。フォントは、Mac・Windows・Linux に元からある欧文と日本語の書体です。
 
@@ -101,7 +101,7 @@ pnpm test:figures   # figure-check の回帰テストと、見本のスライド
 | パス | 内容 |
 |---|---|
 | `src/kit.css`, `src/sample.html` | 見た目の元。Tailwind と daisyUI の入口、`doc-` の部品、見本の本文（`src/classes.txt` は見本から作る） |
-| `skills/doc-kit/` | 見た目のスキル。作り済みの `kit.css` と `sample.html`、`scripts/dockit`（wrap / check / text） |
+| `skills/doc-kit/` | 見た目のスキル。作り済みの `kit.css` と `sample.html`、`scripts/dockit`（wrap / check / text / lookup） |
 | `skills/picture-manual/` | 絵で説明するマニュアル。`scripts/shots.sh` はページの撮影（パソコン幅とスマホ幅） |
 | `skills/explainer/`, `skills/explainer-book/` | 読み手 1 人に向けた説明と本。`scripts/build-html.mjs` が kit のページを出す |
 | `skills/first-reader/` | 模擬読者（Apache-2.0） |

@@ -6,6 +6,9 @@
       (--prose: one column to read, for a body that came from Markdown).
   dockit text <page.html>
       The page as the text a reader meets, headings marked with #: what the first-reader skill reads.
+  dockit lookup <page.html> -o <dir>
+      For a read by lookup (the first-reader skill's references/lookup.md): <dir>/home.txt is what a reader sees
+      before pressing anything, <dir>/screen-<name>.txt and fold-<n>.txt what a press opens, index.txt which is which.
   dockit classes <page.html>
       The classes the page uses, one a line (the kit's own build reads its sample this way).
   dockit check <page.html> [...]
@@ -64,73 +67,251 @@ def renamed(markup):
 
 
 class _Text(html.parser.HTMLParser):
-    """A page as plain text in reading order: headings as #, list items as -, a picture as its label."""
+    """A page as plain text in reading order: headings as #, list items as -, a badge as [badge], a picture as
+    [picture: its label], a folded part as [folded] and its summary, with what it holds after it.
+    glance=True is the page as it stands before anything is pressed: folded parts closed, the before-and-after
+    pictures of a card left out, a card that opens a screen marked."""
     HEADS = {"h%d" % n: n for n in range(1, 7)}
-    BLOCKS = {"p", "div", "section", "header", "nav", "figure", "figcaption", "details", "summary", "tr", "table",
+    BLOCKS = {"p", "div", "section", "header", "footer", "aside", "nav", "figure", "figcaption", "tr", "table",
               "ul", "ol", "blockquote", "main", "article", "hr"}
 
-    def __init__(self):
+    def __init__(self, glance=False):
         super().__init__(convert_charrefs=True)
-        self.out, self.hidden, self.pre = [], 0, 0
+        self.glance, self.out = glance, []
+        self.hidden = self.pre = self.nav = self.item = self.cell = self.card = self.figure = 0
+        self.left_out = None  # [tag, depth] of a part that is not shown at a glance
+        self.labels, self.folds, self.links = [], [], []
+        self.gap = False  # a badge or a key has just ended: the next word does not stick to it
+        self.caption = None  # inside a figcaption: has it said anything yet?
+        self.unnamed = self.name_at = None  # a figure's picture without a label; where its name starts in out
+        self.colon = False
+
+    def block(self, mark="\n\n"):
+        # inside a table's cell a row stays one line
+        self.out.append((" - " if mark == "\n- " else " ") if self.cell else mark)
 
     def handle_starttag(self, tag, attrs):
-        if tag in ("style", "script", "svg"):
+        attrs = dict(attrs)
+        classes = (attrs.get("class") or "").split()
+        if self.left_out:
+            self.left_out[1] += tag == self.left_out[0]
+            return
+        if self.glance and "doc-ba" in classes:
+            self.left_out = [tag, 1]
+            return
+        if tag in ("span", "kbd"):
+            badge = "badge" in classes
+            self.labels.append((badge or tag == "kbd", badge))
+            if badge and not self.hidden:
+                self.out.append(" [" if self.gap else "[")  # a badge right after a badge
+                self.gap = False
+        if tag == "details":
+            closed = self.glance and "open" not in attrs
+            self.folds.append(closed)
+            self.hidden += closed
+        elif tag == "summary":
+            self.hidden -= bool(self.folds and self.folds[-1] and self.hidden)
+            if not self.hidden:
+                self.out.append("\n\n[folded] ")
+        elif tag in ("style", "script", "svg"):
             # a picture is read by its label; a picture inside a picture is part of it
             if tag == "svg" and not self.hidden:
-                self.picture(dict(attrs).get("aria-label"))
+                self.picture(attrs.get("aria-label"))
             self.hidden += 1
         elif self.hidden:
             return
         elif tag == "img":
-            self.picture(dict(attrs).get("alt"))
+            self.picture(attrs.get("alt"))
         elif tag in self.HEADS:
-            self.out.append("\n\n" + "#" * self.HEADS[tag] + " ")
+            self.block("\n\n" + "#" * self.HEADS[tag] + " ")
         elif tag == "li":
-            self.out.append("\n- ")
+            self.item += 1
+            self.block("\n- ")
+        elif tag == "a":
+            opens = "card" in classes and (attrs.get("href") or "").startswith("#")
+            self.links.append(opens)
+            self.card += opens
+            if self.nav and not self.item:
+                # the links of a nav (tabs, chips) are places to go: one a line, however the markup runs them together
+                self.block("\n- ")
         elif tag == "br":
-            self.out.append("\n")
+            self.block("\n")
         elif tag == "pre":
             self.pre += 1
             self.out.append("\n\n")
+        elif tag in ("td", "th"):
+            self.cell += 1
+        elif tag == "b" and self.caption is False:
+            self.name_at = len(self.out)  # a value's name over its line (the kit's doc-pic)
         elif tag in self.BLOCKS:
-            self.out.append("\n\n")
+            self.nav += tag == "nav"
+            if tag == "figure":
+                self.figure += 1
+                self.unnamed = None
+            elif tag == "figcaption":
+                self.caption = False
+            self.block()
 
     def handle_endtag(self, tag):
-        if tag in ("style", "script", "svg"):
+        if self.left_out:
+            self.left_out[1] -= tag == self.left_out[0]
+            if not self.left_out[1]:
+                self.left_out = None
+            return
+        if tag in ("span", "kbd") and self.labels:
+            label, badge = self.labels.pop()
+            if label and not self.hidden:
+                if badge:
+                    self.out.append("]")
+                self.gap = True
+        if tag == "details":
+            self.hidden = max(0, self.hidden - (self.folds.pop() if self.folds else False))
+            if not self.hidden:
+                self.out.append("\n\n")
+        elif tag == "summary":
+            if not self.hidden:
+                self.out.append("\n\n")
+            self.hidden += bool(self.folds and self.folds[-1])
+        elif tag in ("style", "script", "svg"):
             self.hidden = max(0, self.hidden - 1)
         elif self.hidden:
             return
         elif tag in ("td", "th"):
+            self.cell = max(0, self.cell - 1)
             self.out.append(" | ")
+        elif tag == "li":
+            self.item = max(0, self.item - 1)
+        elif tag == "a":
+            self.card -= bool(self.links and self.links.pop())
         elif tag == "pre":
             self.pre = max(0, self.pre - 1)
             self.out.append("\n\n")
-        elif tag in self.BLOCKS or tag in self.HEADS:
-            self.out.append("\n\n")
+        elif tag == "b" and self.name_at is not None:
+            name = "".join(self.out[self.name_at:]).strip()
+            del self.out[self.name_at:]
+            if name and self.unnamed is not None:
+                # the picture above had no label of its own: its value's name is its label
+                self.out[self.unnamed] = "\n\n[picture: %s]\n\n" % name
+            elif name:
+                self.out.append(name)
+                self.colon = True
+            self.name_at = self.unnamed = None
+            self.caption = True
+        elif tag in self.HEADS:
+            if self.card and self.glance:
+                self.out.append(" [opens a screen]")
+            self.block()
+        elif tag in self.BLOCKS:
+            self.nav = max(0, self.nav - (tag == "nav"))
+            if tag == "figure":
+                self.figure = max(0, self.figure - 1)
+                self.unnamed = None
+            elif tag == "figcaption":
+                self.caption, self.colon = None, False
+            self.block()
 
     def handle_data(self, data):
-        if self.hidden:
+        if self.hidden or self.left_out:
             return
         if self.pre:  # code keeps its lines and indentation
             self.out.append(data)
             return
         text = re.sub(r"\s+", " ", data)  # elsewhere a line break in the source is a space, and spaces do not pile up
+        if self.gap and (text[:1].isalnum() or text[:1] > "\u2e7f"):
+            text = " " + text
+        self.gap = False
         if text.startswith(" ") and self.out and self.out[-1][-1:] in (" ", "\n"):
             text = text[1:]
+        if not text:
+            return
+        if text.strip():
+            if self.colon:
+                text, self.colon = ": " + text.lstrip(), False
+            if self.caption is False and self.name_at is None:
+                self.caption = True
         self.out.append(text)
 
     def picture(self, label):
+        if not label and self.figure:
+            self.unnamed = len(self.out)
         self.out.append("\n\n[picture: %s]\n\n" % label if label else "\n\n[picture]\n\n")
 
 
-def page_text(markup):
-    parser = _Text()
+def page_text(markup, glance=False):
+    parser = _Text(glance)
     parser.feed(re.sub(r"(?s)^.*?<body[^>]*>", "", markup, count=1))
     parser.close()
     lines = [line.rstrip() for line in "".join(parser.out).split("\n")]
     # outside code a line starts at its first word (one space is left over from a tag that stood there)
     lines = [line[1:] if line.startswith(" ") and not line.startswith("  ") else line for line in lines]
     return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip() + "\n"
+
+
+SECTION = re.compile(r"<section\b([^>]*)>|</section\s*>", re.I)
+ID = re.compile(r"""(?<![\w-])id\s*=\s*(?:"([^"]*)"|'([^']*)')""")
+# shortcut: a fold inside a fold is taken as one fold; read them with an HTML parser if pages start nesting them
+FOLD = re.compile(r"(?s)<details\b(?![^>]*\sopen\b)[^>]*>(.*?)</details>")
+
+
+def screens_of(page):
+    """(name, start, end) of each screen (a doc-view section with an id): from its tag to its own </section>."""
+    found, stack = [], []
+    for m in SECTION.finditer(page):
+        if m.group(1) is not None:
+            name = ID.search(m.group(1))
+            stack.append((m.start(), name and (name.group(1) or name.group(2)), "doc-view" in used(m.group(1))))
+        elif stack:
+            start, name, is_screen = stack.pop()
+            if is_screen and name:
+                found.append((name, start, m.end()))
+    return sorted(found, key=lambda screen: screen[1])
+
+
+def lookup(args):
+    """A page in the two steps a reader with a wish meets it (the first-reader skill's references/lookup.md)."""
+    page = pathlib.Path(args.page).read_text(encoding="utf-8")
+    page = re.sub(r"(?s)<!--.*?-->|<(style|script)\b.*?</\1>", "", page)
+    page = re.sub(r"(?s)^.*?<body[^>]*>", "", page, count=1)
+    out = pathlib.Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    for stale in list(out.glob("screen-*.txt")) + list(out.glob("fold-*.txt")):
+        stale.unlink()
+    spans = screens_of(page)
+    if spans:
+        parts, home = [(name, page[a:b]) for name, a, b in spans], page
+        for _, a, b in reversed(spans):
+            home = home[:a] + home[b:]
+    else:  # a page that is not in screens: each <h2> and what follows it is a place to land
+        pieces = re.split(r"(?=<h2\b)", page)
+        home, parts = pieces[0], [(str(n), piece) for n, piece in enumerate(pieces[1:], 1)]
+    index, files = [], set()
+
+    def folds(where, markup):
+        for fold in FOLD.finditer(markup):
+            summary = re.search(r"(?s)<summary\b[^>]*>(.*?)</summary>", fold.group(1))
+            name = "fold-%d.txt" % (len([line for line in index if "\tfold-" in line]) + 1)
+            (out / name).write_text(page_text(fold.group(1).replace(summary.group(0), "", 1) if summary else fold.group(1)), encoding="utf-8")
+            index.append("%s\t%s\tfolded, in %s" % (text(summary.group(1)) if summary else "(no summary)", name, where))
+
+    folds("home.txt", home)
+    for name, markup in parts:
+        file = "screen-%s.txt" % re.sub(r"[^\w.-]", "_", name)
+        if file in files:
+            sys.exit("dockit lookup: two screens would both be %s (their ids are the same once made safe for a file's name)" % file)
+        files.add(file)
+        head = re.search(r"(?s)<h2\b[^>]*>(.*?)</h2>", markup)
+        (out / file).write_text(page_text(markup, glance=True), encoding="utf-8")
+        index.append("%s\t%s\tscreen" % (text(head.group(1)) if head else name, file))
+        folds(file, markup)
+    seen = page_text(home, glance=True)
+    if not spans and parts:
+        seen += "\n" + "".join("## %s [opens a screen]\n" % line.split("\t")[0] for line in index if line.endswith("\tscreen"))
+    (out / "home.txt").write_text(seen, encoding="utf-8")
+    (out / "index.txt").write_text("".join(line + "\n" for line in index), encoding="utf-8")
+    print("%s: home.txt (what is seen before anything is pressed), %d screens and %d folded parts (what a press "
+          "opens), index.txt (what opens which file, for the one who runs the read)"
+          % (out, len(files), len(index) - len(files)))
+    return 0
 
 
 def wrap(args):
@@ -215,6 +396,10 @@ def main():
     t = sub.add_parser("text")
     t.add_argument("page")
     t.set_defaults(run=page_as_text)
+    look = sub.add_parser("lookup")
+    look.add_argument("page")
+    look.add_argument("-o", "--out", required=True)
+    look.set_defaults(run=lookup)
     args = parser.parse_args()
     sys.exit(args.run(args))
 

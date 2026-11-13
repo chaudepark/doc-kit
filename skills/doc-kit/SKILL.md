@@ -32,12 +32,14 @@ this plugin the request reaches first, the page goes through all of these, in th
 3. **The look.** The parts below, then `dockit wrap` and `dockit check` ("Make a page").
 4. **Look at it** at desktop and phone width, and read the images.
 5. **Have it read.** The `first-reader` skill reads the page before the user does. A wide page (cards, a
-   manual, a cheat sheet) is reference material in its terms: its readers come with a wish and look for it,
-   so give them the page's wishes as lookup tasks, and two or three wishes the page does not name. A prose
-   page gets the full read. The text to read is the source Markdown when there is one, otherwise
-   `python3 scripts/dockit text page.html > page.txt`. Fix what the readers stumbled on, run the check again,
-   and have the same readers read once more; what still stumbles after that goes in the hand-over, not into a
-   third round. The page first-reader builds of the read stays beside the run: do not publish it or open it,
+   manual, a cheat sheet) is read by lookup: its readers come with a wish and look for it. The whole procedure
+   is `../first-reader/references/lookup.md` (short; nothing else of that skill is needed), and
+   `python3 scripts/dockit lookup page.html -o <run dir>` gives the page as such a reader meets it. A prose
+   page gets first-reader's full read; its text is the source Markdown when there is one, otherwise
+   `python3 scripts/dockit text page.html > page.txt`. The readers are fresh subagents (you have seen the
+   page, they have not). Fix what they stumbled on, run the check again, and have the same readers (new
+   subagents, the same personas) read once more; what still stumbles after that goes in the hand-over, not
+   into a third round. The page first-reader builds of the read stays beside the run: do not publish it or open it,
    give its path. (A book: at least its first chapter and the chapters with exercises, as explainer-book says.
    A trial shown to the user to settle a shape is not read: the user is its reader.)
 6. **Hand it over**: the page's path, what the readers said in two or three lines and what you changed for
@@ -52,7 +54,7 @@ In this skill's directory:
 - `sample.html`: every part, on one page. Open it (or read its source) before writing; copy the markup from it.
 - `kit.css`: the built CSS. Never edit it, never write a second one.
 - `scripts/dockit`: makes a page (`wrap`), checks one (`check`), and gives a page's text for the readers
-  (`text`). Python 3.9+, nothing to install.
+  (`text`, and `lookup` for a page read by lookup). Python 3.9+, nothing to install.
 
 ## Make a page
 
@@ -85,7 +87,8 @@ repository's tests. The check says when the copy has fallen behind the kit.
 | A setting's values side by side | `<h3 class="doc-sticky">` then `doc-vals` > `figure.doc-pic` > picture + `<figcaption><b>value</b>one line</figcaption>` |
 | A setting with five values or fewer | the same, as `doc-vals doc-vals-few`: wider columns, larger pictures |
 | Folded detail | `<details class="collapse collapse-arrow border border-base-300 bg-base-100">` > `summary.collapse-title` + `collapse-content` |
-| Settings with no picture | `<div class="overflow-x-auto">` > `table.table`, the setting in `<th>` |
+| A picture's label | `aria-label` on the `<svg>` (or the value's name in its `<figcaption><b>`): a reader who cannot see it, and the readers of step 5, get the label and nothing else |
+| Settings with no picture | `<div class="overflow-x-auto">` > `table.table` with a `<thead>` row that names the columns (without it a row reads as bare values), the setting in `<th>` |
 | Good to know / take care | `alert alert-soft alert-info` / `alert alert-soft alert-warning` (with `role="alert"`) |
 | Keys | `kbd kbd-sm` |
 | Labels | `badge` with `badge-neutral`, `badge-ghost`, `badge-outline` or `badge-soft badge-primary` |

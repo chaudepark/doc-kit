@@ -49,7 +49,7 @@ ask ─→ a skill sets the steps ─→ the body (parts only) ─→ one HTML f
 - **One look** for pages that are read (two exceptions: a slide deck, and the page `first-reader` builds of a read): `skills/doc-kit/kit.css`, prebuilt from daisyUI 5 and Tailwind CSS 4. Fonts, text sizes (five of them), widths and colours are decided there and nowhere else. Pages are dark only.
 - **Only the parts in the sample**: `skills/doc-kit/sample.html` is the list of parts a page may use. The build keeps only the classes the sample uses, so anything else does nothing on a page.
 - **Checked**: `dockit check` stops a page that uses a class the sample does not have, carries an old `kit.css`, names a picture's class like a part, heads a screen in other words than the card that opens it, or loads something from outside.
-- **Read before you read it**: `first-reader`'s simulated readers go through every page (a manual with the wishes a user would come with, prose from top to bottom; of a book, its first chapter and the chapters with exercises), and what they stumbled on is fixed first. It is left out only for a change that touches neither the words nor their order, or when you say so.
+- **Read before you read it**: `first-reader`'s simulated readers go through every page (a manual by lookup, with the wishes a user would come with: `skills/first-reader/references/lookup.md`; prose from top to bottom; of a book, its first chapter and the chapters with exercises), and what they stumbled on is fixed first. It is left out only for a change that touches neither the words nor their order, or when you say so.
 - **One file**: a page opens offline and on a phone. The repository that uses the kit needs no Node and no build (`dockit` is Python 3.9, standard library only).
 - **Any language**: a page takes its language from its text (Japanese when its prose has kana, otherwise English; code is not counted), or from `--lang`. The fonts are the ones Mac, Windows and Linux already have for Latin and Japanese.
 
@@ -101,7 +101,7 @@ Known: `figure-check` compares a Mermaid figure with its committed SVG byte for 
 | Path | What |
 |---|---|
 | `src/kit.css`, `src/sample.html` | the look's source: the entry for Tailwind and daisyUI, the `doc-` parts, the sample's body (`src/classes.txt` is made from it) |
-| `skills/doc-kit/` | the look as a skill: the built `kit.css` and `sample.html`, `scripts/dockit` (wrap / check / text) |
+| `skills/doc-kit/` | the look as a skill: the built `kit.css` and `sample.html`, `scripts/dockit` (wrap / check / text / lookup) |
 | `skills/picture-manual/` | manuals in pictures; `scripts/shots.sh` takes a page's screenshots at desktop and phone width |
 | `skills/explainer/`, `skills/explainer-book/` | explanations for one reader, and books; `scripts/build-html.mjs` gives kit pages |
 | `skills/first-reader/` | simulated readers (Apache-2.0) |

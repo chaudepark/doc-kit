@@ -110,6 +110,10 @@ from the tool and can show what the tool does not do; real output cannot, and it
   output text, a screenshot of the actual screen, a diagram built from the actual configuration. Say on the page what
   the picture is.
 
+When something on the page is not the tool's real output (a number that was computed, not recorded; a picture
+drawn from the documentation), say first which parts are real, then what is not. A bare note under one picture
+("this is not a real recording") makes the reader doubt every step on the page.
+
 Inline SVG made at build time is the default: it is deterministic, testable, readable on a phone, needs no script.
 Move to canvas or lazy drawing only when the number of pictures makes the page heavy.
 
@@ -147,16 +151,25 @@ sticky headings stay while scrolling, and whether the links move; say so, or try
 
 ### 8. Have it read
 
-The `first-reader` skill reads the page before the user does; this is not something the user asks for. A
-manual is reference material in its terms: nobody reads it in order, they come with a wish. So cast its
-readers as people who use the tool, and give each a wish as a lookup task: some of the page's own wishes in
-other words than the card's, and two or three the page does not name. A reader who cannot find their wish, or
-finds it under a heading they would not have looked under, is a finding about the cards' words or the page's
-shape: fix that (step 2 or the shape), not the sentence. (Whether a reader knows where they are on a screen is
-seen in step 7's pictures, not in the text.) The text for the readers:
-`python3 ../doc-kit/scripts/dockit text page.html > page.txt`. After fixing, build, check, and have the same
-readers look once more. The trial of step 5 is not read by them: the user is its reader. When this step may be
-left out, and what to say then, is in doc-kit's SKILL.md ("Every page goes the same way").
+The `first-reader` skill reads the page before the user does; this is not something the user asks for. A manual
+is not read in order: its readers come with a wish. So the read is a read by lookup, and its whole procedure is one
+short file, `../first-reader/references/lookup.md`. Follow it; in short:
+
+- `python3 ../doc-kit/scripts/dockit lookup page.html -o <run dir>` gives the page as a reader meets it: the home
+  before pressing anything, then each screen.
+- Two readers (the owner a month later; the same person tired, in the middle of work), each a fresh subagent. Eight
+  to ten wishes in the reader's words, not the cards'; two or three the page does not name, one of them something
+  the tool cannot do.
+- Each reader first says, from the home alone, what they would press for every wish; then answers from what
+  that press opens, alone.
+- Sort the stumbles: the words (change the card's words, step 2), no place for it (give it one), no fact (nobody
+  tried or measured it: an issue, not a rewrite). A stumble about what only a picture shows is held against step
+  7's pictures before it counts.
+- The readers and the wishes are kept beside the page's source (`<page>.readers.md`), so the next read costs one
+  command. One second round after the fixes, then the hand-over.
+
+The trial of step 5 is not read by them: the user is its reader. When this step may be left out, and what to say
+then, is in doc-kit's SKILL.md ("Every page goes the same way").
 
 ## A card, for the trial
 

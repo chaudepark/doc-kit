@@ -41,7 +41,9 @@ else in this file is machinery, and machinery stays invisible.
   fixes, no suggestions, no revised copy. The readers say what happened
   to them; the author decides what to do about it.
 - **As another skill's last step** (doc-kit, picture-manual, explainer, explainer-book run this before they
-  hand a page over): nobody said "review this", so there is no starting line and no waiting user. The
+  hand a page over): nobody said "review this", so there is no starting line and no waiting user. You
+  made the page and have seen it; that is fine, because the readers are fresh subagents who have not
+  ("the same readers again" means new subagents given the same personas). The
   result goes to the skill that wrote the page, which decides what to change; the user hears what the
   readers said in two or three lines, when the document is handed over. Build this skill's own page of the
   read beside the run and give its path: do not publish it and do not open it. The readers stay available
@@ -109,6 +111,9 @@ First decide whether a timed read even models this text's real encounter:
   as the main event with lookup tasks: cast a reader with a question and
   test whether the scanner view routes them to the answer. Skimmability is
   the success condition here, not a defect.
+  For a page in screens or sections (a manual, a cheat sheet),
+  `references/lookup.md` is the whole procedure: read that file and skip
+  the rest of this one.
 - **Under ~150 words** (tweet, bio, announcement): no chunked feed. One
   fresh subagent gets the text cold with a persona and a two-second frame:
   first felt reaction, would they stop scrolling, what they'd retell.

@@ -51,7 +51,8 @@ def main():
         sys.exit(__doc__)
     text = Path(sys.argv[1]).read_text(encoding="utf-8")
     paras = paragraphs(text)
-    words = len(text.split())
+    cjk = len(_CJK.findall(text))
+    words = len(_CJK.sub(" ", text).split()) + (cjk + 1) // 2  # as feed.py counts: two characters, about a word
     bold = re.findall(r"\*\*(.+?)\*\*|__(.+?)__", text)
     bold = [a or b for a, b in bold]
     links = re.findall(r"\[([^\]]+)\]\(", text)
