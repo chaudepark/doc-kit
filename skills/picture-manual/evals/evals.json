@@ -1,0 +1,23 @@
+{
+  "skill_name": "picture-manual",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "このデバイスの README を読み直したけど、設定が多くて結局どれを触ればいいのかわからなくなる。わかりやすい早見表にしてほしい",
+      "expected_output": "A trial HTML page: the flow of use in a few pictures first, wish cards (want, how, before and after picture, result), pictures drawn from the device's own model or engine, the README's specification not copied onto the page; the path given to the user; the real README untouched until the shape is liked",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "bin/live のコマンド、種類が多くて毎回 README を引いてる。やりたいことから引ける図解のページを作って",
+      "expected_output": "A page for a command with no picture of its own: each wish with the command line and its real output text or a diagram of what moves in the set, said on the page what the picture is; no invented output",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "tools/tidy って何をどこまで消すのか、毎回ちょっと不安になる。絵で説明してくれる？",
+      "expected_output": "A short page: what goes to the Trash and what stays, as a before and after picture of a folder made from a dry run's real output; one or two wishes, not padded to twelve",
+      "files": []
+    }
+  ]
+}

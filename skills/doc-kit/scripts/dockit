@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""dockit: make a document page with the kit's look, and check a page against the kit.
+
+  dockit wrap <body.html> -o <page.html> --title <title> [--css <own.css>] [--prose] [--lang en]
+      One self-contained file: kit.css inlined, the body inside <main class="doc" id="all">
+      (--prose: one column to read, for a body that came from Markdown).
+  dockit classes <page.html>
+      The classes the page uses, one a line (the kit's own build reads its sample this way).
+  dockit check <page.html> [...]
+      Fails when a page uses a class no style defines (outside a doc-fig figure), carries an old kit.css,
+      names a picture's class like a kit part, heads a screen in other words than the card that opens it,
+      or loads something from outside.
+
+Python 3.9+, standard library only (it runs on a new machine before anything is installed).
+"""
+import argparse
+import html
+import pathlib
+import re
+import sys
+
+KIT = pathlib.Path(__file__).resolve().parent.parent / "kit.css"
+STYLE = re.compile(r"<style([^>]*)>(.*?)</style>", re.S)
+# shortcut: attributes are read by regex, not an HTML parser; a class= inside a script or a comment is read too
+CLASS = re.compile(r"""\bclass\s*=\s*(?:"([^"]*)"|'([^']*)')""")
+SELECTOR = re.compile(r"\.(-?[A-Za-z_](?:[\w-]|\\.)*)")
+KANA = re.compile("[\u3040-\u30ff]")
+OUTSIDE = re.compile(r"""<link\b[^>]*\bhref\s*=|<script\b[^>]*\bsrc\s*=|@import\b|url\(\s*["']?https?:""", re.I)
+
+
+def defined(css):
+    return {re.sub(r"\\(.)", r"\1", name) for name in SELECTOR.findall(css)}
+
+
+def used(markup):
+    return {name for a, b in CLASS.findall(markup) for name in (a or b).split()}
+
+
+def text(markup):
+    return " ".join(html.unescape(re.sub(r"<[^>]+>", " ", markup)).split())
+
+
+def renamed(markup):
+    """(card heading, screen heading) for each card whose screen (a doc-view) is headed in other words:
+    the reader presses one name and lands on another, and no longer knows where they are."""
+    screens = {}
+    for attrs, rest in re.findall(r"<section\b([^>]*\bdoc-view\b[^>]*)>(.*?)(?=<section\b|\Z)", markup, re.S):
+        name = re.search(r'\bid\s*=\s*"([^"]+)"', attrs)
+        head = re.search(r"<h2\b[^>]*>(.*?)</h2>", rest, re.S)
+        if name and head:
+            screens[name.group(1)] = text(head.group(1))
+    out = []
+    for attrs, inner in re.findall(r"<a\b([^>]*)>(.*?)</a>", markup, re.S):
+        to = re.search(r'\bhref\s*=\s*"#([^"]+)"', attrs)
+        title = re.search(r'class="[^"]*\bcard-title\b[^"]*"[^>]*>(.*?)</h\d>', inner, re.S)
+        if to and title and to.group(1) in screens and text(title.group(1)) != screens[to.group(1)]:
+            out.append((text(title.group(1)), screens[to.group(1)]))
+    return out
+
+
+def wrap(args):
+    body = pathlib.Path(args.body).read_text(encoding="utf-8")
+    own = "<style>%s</style>\n" % pathlib.Path(args.css).read_text(encoding="utf-8").strip() if args.css else ""
+    page = (
+        '<!doctype html>\n<html lang="%s"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1"><title>%s</title>\n'
+        "<style data-doc-kit>%s</style>\n%s</head>\n<body>\n<main class=\"doc%s\" id=\"all\">\n%s\n</main>\n</body></html>\n"
+    ) % (html.escape(args.lang or ("ja" if KANA.search(body) else "en")), html.escape(args.title), KIT.read_text(encoding="utf-8").strip(), own,
+         " doc-prose" if args.prose else "", body.strip())
+    pathlib.Path(args.out).write_text(page, encoding="utf-8")
+    return 0
+
+
+def problems(page):
+    styles = STYLE.findall(page)
+    kit = [css for attrs, css in styles if "data-doc-kit" in attrs]
+    if not kit:
+        return ["no <style data-doc-kit>: not a doc-kit page (make it with dockit wrap)"]
+    out = []
+    if kit[0].strip() != KIT.read_text(encoding="utf-8").strip():
+        out.append("its kit.css is not the current one: wrap it again (or copy kit.css again)")
+    kit_names = defined(kit[0])
+    names = kit_names | defined(" ".join(css for attrs, css in styles if "data-doc-kit" not in attrs))
+    markup = STYLE.sub("", page)
+    # a figure made elsewhere (doc-fig: Mermaid, D2, a chart) carries its tool's marker classes: not asked of them
+    unknown = sorted(used(re.sub(r'<figure class="doc-fig".*?</figure>', "", markup, flags=re.S)) - names)
+    if unknown:
+        out.append("classes no style defines (use a part from sample.html): " + " ".join(unknown))
+    in_pictures = used(" ".join(re.findall(r"<svg\b.*?</svg>", markup, re.S)))
+    clash = sorted(n for n in in_pictures & kit_names if not n.startswith("doc-"))
+    if clash:
+        out.append("a picture's class is also a kit part (rename it with the tool's prefix): " + " ".join(clash))
+    for card, screen in renamed(markup):
+        out.append("a card and the screen it opens have different headings (use the card's words): '%s' -> '%s'" % (card, screen))
+    if OUTSIDE.search(page):
+        out.append("loads a stylesheet, script or file from outside: a page is one file")
+    return out
+
+
+def classes(args):
+    print("\n".join(sorted(used(STYLE.sub("", pathlib.Path(args.page).read_text(encoding="utf-8"))))))
+    return 0
+
+
+def check(args):
+    bad = 0
+    for path in args.pages:
+        found = problems(pathlib.Path(path).read_text(encoding="utf-8"))
+        bad += bool(found)
+        for line in found:
+            print("%s: %s" % (path, line), file=sys.stderr)
+    return 1 if bad else 0
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="dockit", description=__doc__.split("\n")[0])
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    w = sub.add_parser("wrap")
+    w.add_argument("body")
+    w.add_argument("-o", "--out", required=True)
+    w.add_argument("--title", required=True)
+    w.add_argument("--css")
+    w.add_argument("--prose", action="store_true")
+    w.add_argument("--lang", help="the page's language; without it, ja when the body has kana, else en")
+    w.set_defaults(run=wrap)
+    c = sub.add_parser("check")
+    c.add_argument("pages", nargs="+")
+    c.set_defaults(run=check)
+    k = sub.add_parser("classes")
+    k.add_argument("page")
+    k.set_defaults(run=classes)
+    args = parser.parse_args()
+    sys.exit(args.run(args))
+
+
+if __name__ == "__main__":
+    main()

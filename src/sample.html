@@ -1,0 +1,135 @@
+<header>
+  <span class="badge badge-outline badge-primary">doc-kit sample</span>
+  <h1>A page is made of these parts only</h1>
+  <p class="doc-lede">Every document page is put together from the parts on this page. A part that is missing is added here first, then used.</p>
+  <nav class="tabs tabs-box" aria-label="Contents">
+    <a class="tab" href="#home">Start</a>
+    <a class="tab" href="#values">Values side by side</a>
+    <a class="tab" href="#reference">Tables, notes, steps</a>
+    <a class="tab" href="#prose">A page of prose</a>
+    <a class="tab" href="#all">Everything on one page</a>
+  </nav>
+</header>
+
+<div class="doc-home" id="home">
+  <section>
+    <h2>The flow in pictures (doc-cards and card)</h2>
+    <p class="doc-lede">A page opens with how the thing is used, in three to five pictures.</p>
+    <div class="doc-cards">
+      <div class="card card-border bg-base-100">
+        <figure><svg viewBox="0 0 160 64" role="img" aria-label="the input"><rect class="doc-bg" width="160" height="64"/><rect x="10" y="38" width="32" height="5"/><rect x="46" y="28" width="32" height="5"/><rect x="82" y="34" width="32" height="5"/><rect x="118" y="22" width="32" height="5"/></svg></figure>
+        <div class="card-body">
+          <h3 class="card-title"><span class="badge badge-primary">1</span>Prepare</h3>
+          <p class="doc-note">The number is a badge, the heading a card-title, the aside a doc-note.</p>
+        </div>
+      </div>
+      <div class="card card-border bg-base-100">
+        <figure><svg viewBox="0 0 160 64" role="img" aria-label="the action"><rect class="doc-bg" width="160" height="64"/><rect class="doc-hi" x="56" y="22" width="48" height="20" rx="10"/></svg></figure>
+        <div class="card-body">
+          <h3 class="card-title"><span class="badge badge-primary">2</span>Press</h3>
+          <p class="doc-note">Keys are kbd: <kbd class="kbd kbd-sm">⌘</kbd> <kbd class="kbd kbd-sm">L</kbd>.</p>
+        </div>
+      </div>
+      <div class="card card-border bg-base-100">
+        <figure><svg viewBox="0 0 160 64" role="img" aria-label="the result"><rect class="doc-bg" width="160" height="64"/><rect x="10" y="38" width="32" height="5"/><rect x="46" y="28" width="32" height="5"/><rect x="82" y="34" width="32" height="5"/><rect x="118" y="22" width="32" height="5"/><rect class="doc-hi" x="10" y="50" width="140" height="5"/></svg></figure>
+        <div class="card-body">
+          <h3 class="card-title"><span class="badge badge-primary">3</span>Check</h3>
+          <p class="doc-note">What changed is drawn in the doc-hi colour.</p>
+        </div>
+      </div>
+    </div>
+    <details class="collapse collapse-arrow border border-base-300 bg-base-100">
+      <summary class="collapse-title font-bold">The long steps and the terms (folded: collapse)</summary>
+      <div class="collapse-content">
+        <ol>
+          <li>Long steps and a glossary come after the flow, folded.</li>
+          <li>Specification (what it does not do, only when, since which version) stays in the reference, off the page.</li>
+        </ol>
+      </div>
+    </details>
+  </section>
+
+  <section>
+    <h2>Wish cards (doc-cards-2 and doc-ba)</h2>
+    <p class="doc-note">A card's heading is a wish in the reader's words. Pressing it lands on a screen with the same heading.</p>
+    <div class="doc-cards-2">
+      <a class="card card-border bg-base-100" href="#values">
+        <div class="card-body">
+          <h3 class="card-title">Values side by side</h3>
+          <p class="doc-how"><span class="badge badge-neutral">where</span>set the setting to <code>value</code></p>
+          <div class="doc-ba">
+            <div><span class="doc-note">now</span><svg viewBox="0 0 160 64" role="img" aria-label="now"><rect class="doc-bg" width="160" height="64"/><rect x="10" y="20" width="32" height="5"/><rect x="46" y="20" width="32" height="5"/><rect x="82" y="20" width="32" height="5"/><rect x="118" y="20" width="32" height="5"/><rect x="10" y="46" width="140" height="5"/></svg></div>
+            <span class="doc-to">→</span>
+            <div><span class="doc-note">then</span><svg viewBox="0 0 160 64" role="img" aria-label="then"><rect class="doc-bg" width="160" height="64"/><rect x="10" y="20" width="32" height="5"/><rect x="46" y="20" width="32" height="5"/><rect x="82" y="20" width="32" height="5"/><rect x="118" y="20" width="32" height="5"/><rect x="10" y="46" width="32" height="5"/><rect class="doc-hi" x="46" y="40" width="32" height="5"/><rect x="82" y="46" width="32" height="5"/><rect class="doc-hi" x="118" y="36" width="32" height="5"/></svg></div>
+          </div>
+          <p>A card's heading is the heading of the screen it opens, word for word (this one opens "Values side by side").</p>
+        </div>
+      </a>
+      <a class="card card-border bg-base-100" href="#reference">
+        <div class="card-body">
+          <h3 class="card-title">Tables, notes, steps</h3>
+          <p class="doc-how"><span class="badge badge-ghost">aside</span><span class="badge badge-soft badge-primary">tinted</span><span class="badge badge-outline">outline</span></p>
+          <div class="doc-ba">
+            <div><span class="doc-note">now</span><svg viewBox="0 0 160 64" role="img" aria-label="now"><rect class="doc-bg" width="160" height="64"/><rect x="10" y="30" width="140" height="5"/></svg></div>
+            <span class="doc-to">→</span>
+            <div><span class="doc-note">then</span><svg viewBox="0 0 160 64" role="img" aria-label="then"><rect class="doc-bg" width="160" height="64"/><rect class="doc-dim" x="10" y="30" width="140" height="5"/><rect class="doc-hi" x="10" y="18" width="68" height="5"/><rect class="doc-hi" x="82" y="42" width="68" height="5"/></svg></div>
+          </div>
+          <p>Cards go two to a row at most. The result is one line, about what the picture shows.</p>
+        </div>
+      </a>
+    </div>
+  </section>
+</div>
+
+<section class="doc-view" id="values">
+  <a class="btn btn-ghost btn-sm" href="#home">← Back</a>
+  <h2>Values side by side</h2>
+  <p class="doc-note">Parts: doc-vals and doc-pic</p>
+  <h3 class="doc-sticky">The setting's name <span class="badge badge-ghost">this line stays at the top: doc-sticky</span></h3>
+  <div class="doc-vals">
+    <figure class="doc-pic"><svg viewBox="0 0 160 64" role="img" aria-label="value hold"><rect class="doc-bg" width="160" height="64"/><rect x="10" y="46" width="140" height="5"/></svg><figcaption><b>hold</b>The value's name, and what happens, in one line</figcaption></figure>
+    <figure class="doc-pic"><svg viewBox="0 0 160 64" role="img" aria-label="value restrike"><rect class="doc-bg" width="160" height="64"/><rect x="10" y="46" width="32" height="5"/><rect x="46" y="46" width="32" height="5"/><rect x="82" y="46" width="32" height="5"/><rect x="118" y="46" width="32" height="5"/></svg><figcaption><b>restrike</b>A picture is never narrower than 220px</figcaption></figure>
+    <figure class="doc-pic"><svg viewBox="0 0 160 64" role="img" aria-label="value step"><rect class="doc-bg" width="160" height="64"/><rect x="10" y="46" width="32" height="5"/><rect x="46" y="36" width="32" height="5"/><rect x="82" y="26" width="32" height="5"/><rect x="118" y="16" width="32" height="5"/></svg><figcaption><b>step</b>Drawn from the same input, so they can be compared</figcaption></figure>
+  </div>
+  <h3 class="doc-sticky">A setting with few values <span class="badge badge-ghost">five or fewer: larger, with doc-vals-few</span></h3>
+  <div class="doc-vals doc-vals-few">
+    <figure class="doc-pic"><svg viewBox="0 0 160 64" role="img" aria-label="value off"><rect class="doc-bg" width="160" height="64"/><rect x="10" y="30" width="32" height="5"/><rect x="46" y="30" width="32" height="5"/><rect x="82" y="30" width="32" height="5"/><rect x="118" y="30" width="32" height="5"/></svg><figcaption><b>off</b>With few values the columns widen and the pictures grow</figcaption></figure>
+    <figure class="doc-pic"><svg viewBox="0 0 160 64" role="img" aria-label="value on"><rect class="doc-bg" width="160" height="64"/><rect x="10" y="30" width="32" height="5"/><rect class="doc-hi" x="40" y="30" width="38" height="5"/><rect x="82" y="30" width="32" height="5"/><rect class="doc-hi" x="112" y="30" width="38" height="5"/></svg><figcaption><b>on</b>A page can change the highlight colour (doc-hi) with --doc-hi</figcaption></figure>
+  </div>
+</section>
+
+<section class="doc-view" id="reference">
+  <a class="btn btn-ghost btn-sm" href="#home">← Back</a>
+  <h2>Tables, notes, steps</h2>
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Setting</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><th>Key</th><td>A setting with no picture goes in a table, one to a row.</td></tr>
+        <tr><th>Cands</th><td>Values are code: <code>1</code> to <code>6</code>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div role="alert" class="alert alert-soft alert-info"><span>Good to know: alert alert-soft alert-info</span></div>
+  <div role="alert" class="alert alert-soft alert-warning"><span>Take care: alert alert-soft alert-warning</span></div>
+  <ul>
+    <li>A list is ul; steps in order are ol.</li>
+    <li>Text wraps at a width that reads well, by itself.</li>
+  </ul>
+</section>
+
+<section class="doc-view doc-prose" id="prose">
+  <a class="btn btn-ghost btn-sm" href="#home">← Back</a>
+  <h2>A page of prose</h2>
+  <p class="doc-note">Part: doc-prose</p>
+  <p>An explanation or a report written as Markdown is one column to read. Write the plain tags and they look like this. A <a href="#home">link</a> is underlined, in the primary colour.</p>
+  <p lang="ja">日本語の本文も、同じ書体と行間で組まれます。かな、漢字、English が1行に混ざっても、読める幅で折り返します。</p>
+  <h3>Code and a quote</h3>
+  <pre><code>pnpm build
+pnpm test</code></pre>
+  <blockquote><p>A quote is a blockquote: one step back from the text.</p></blockquote>
+  <details><summary>Folded, inside prose (details)</summary><p>An answer or an aside, for the reader who wants it.</p></details>
+  <figure class="doc-fig"><svg viewBox="0 0 320 120" role="img" aria-label="a figure made elsewhere"><rect x="20" y="40" width="100" height="40" rx="6" fill="#dbeafe" stroke="#1f2328"/><rect x="200" y="40" width="100" height="40" rx="6" fill="#dcfce7" stroke="#1f2328"/><path d="M120 60 H200" stroke="#1f2328" fill="none"/><text x="70" y="65" text-anchor="middle">input</text><text x="250" y="65" text-anchor="middle">output</text></svg><figcaption>A figure made elsewhere (Mermaid, D2, a chart) keeps its white ground: doc-fig</figcaption></figure>
+  <hr>
+  <nav class="doc-book" aria-label="Chapters"><a href="#prose">← The chapter before</a><a href="#home">Contents</a><a href="#prose">→ The chapter after</a></nav>
+</section>

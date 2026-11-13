@@ -1,0 +1,3 @@
+# Tailwind's CLI uses @parcel/watcher only for --watch, and it ships a built binary: its build script is not run
+allowBuilds:
+  '@parcel/watcher': false

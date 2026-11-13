@@ -1,0 +1,84 @@
+---
+name: doc-kit
+description: The house look for standalone HTML document pages — manuals, cheat sheets, how-to pages, explainers, reports, research notes — in any of the user's repositories. One prebuilt CSS (daisyUI 5 on Tailwind 4) and a fixed list of parts, so every page has the same fonts, sizes and layout and none is designed from scratch. Use whenever you write, restyle or review such a page, when the user asks for a document, マニュアル, 早見表, チートシート, 手順書, 説明ページ, レポート as HTML, or says pages look different from each other (見た目を揃えたい, デザインシステム). The picture-manual skill uses it for its look. Not for a web app or site with its own design, nor for Markdown.
+---
+
+# doc-kit
+
+A page looks like the others because it is made of the same few parts, not because someone designed it well that
+day. So the rule is one: **a page uses only the parts in `sample.html`**. Fonts, text sizes, spacing, the page's
+width and the colours are the kit's; a page does not set them. Every page is dark (the user finds a light page
+glaring), whatever the system is set to.
+
+In this skill's directory:
+
+- `sample.html`: every part, on one page. Open it (or read its source) before writing; copy the markup from it.
+- `kit.css`: the built CSS. Never edit it, never write a second one.
+- `scripts/dockit`: makes a page (`wrap`) and checks one (`check`). Python 3.9+, nothing to install.
+
+## Make a page
+
+1. Write the body only (what goes inside `<main>`), from the parts below.
+2. `python3 scripts/dockit wrap body.html -o page.html --title "…" [--css own.css] [--prose] [--lang en]`
+   One self-contained file: it opens from `file://`, offline, on a phone. The page's language is read from the
+   body (kana: `ja`, otherwise `en`) unless `--lang` says it; write the page in the reader's language.
+3. `python3 scripts/dockit check page.html`. Fix what it names; do not ship a page that fails.
+   (Inside a `doc-fig` figure the classes are the drawing tool's and are not asked to be defined.)
+4. Look at it at desktop and phone width (`../picture-manual/scripts/shots.sh page.html <out dir>`).
+
+A page written as Markdown: the explainer skill's `build-html.mjs` (same plugin) turns it into a kit page; do
+not convert it by hand.
+
+A page that a generator in another repository builds: copy `kit.css` into that repository once, inline it as
+`<style data-doc-kit>…</style>`, put the body in `<main class="doc" id="all">`, and run `dockit check` in that
+repository's tests. The check says when the copy has fallen behind the kit.
+
+## The parts
+
+| For | Markup |
+| --- | --- |
+| Title block | `<header>`: a `badge badge-outline badge-primary` (version), `<h1>`, `<p class="doc-lede">`, the screens' links as `tabs tabs-box` > `a.tab` |
+| A section | `<section>` with `<h2>`; inside it `<h3>` |
+| Small or secondary text | `doc-note` |
+| The flow in 3 to 5 pictures | `doc-cards` > `card card-border bg-base-100` > `<figure>` + `card-body` > `card-title` (number as `badge badge-primary`) |
+| Wish cards, two columns at most | `doc-cards-2` > `a.card card-border bg-base-100` > `card-body` |
+| One line of how | `doc-how`: where as a `badge`, the value in `<code>` |
+| Before → after | `doc-ba` > `<div>` (`doc-note` + picture), `<span class="doc-to">→</span>`, `<div>` |
+| A setting's values side by side | `<h3 class="doc-sticky">` then `doc-vals` > `figure.doc-pic` > picture + `<figcaption><b>value</b>one line</figcaption>` |
+| A setting with five values or fewer | the same, as `doc-vals doc-vals-few`: wider columns, larger pictures |
+| Folded detail | `<details class="collapse collapse-arrow border border-base-300 bg-base-100">` > `summary.collapse-title` + `collapse-content` |
+| Settings with no picture | `<div class="overflow-x-auto">` > `table.table`, the setting in `<th>` |
+| Good to know / take care | `alert alert-soft alert-info` / `alert alert-soft alert-warning` (with `role="alert"`) |
+| Keys | `kbd kbd-sm` |
+| Labels | `badge` with `badge-neutral`, `badge-ghost`, `badge-outline` or `badge-soft badge-primary` |
+| One screen at a time | home in `doc-home`, each screen a `<section class="doc-view" id="…">` with a way back (`btn btn-ghost btn-sm`); `#all` shows everything. A card that opens a screen and that screen's `<h2>` say the same words (`check` compares them) |
+| A page that is prose (from Markdown) | `<main class="doc doc-prose">` (`dockit wrap --prose`), or a `doc-prose` section: one column; bare `<h2>`, `<p>`, lists, `<a>`, `<pre><code>`, `<blockquote>`, `<details>`, `<hr>` |
+| A figure made elsewhere (Mermaid, D2, a chart, a screenshot) | `<figure class="doc-fig">` > `<svg>` or `<img>` + `<figcaption>`: it keeps the white ground it was drawn for |
+| A book's chapters | `<nav class="doc-book">`: the one before, the contents, the one after |
+| In a picture | `doc-bg` (its ground), `doc-hi` (what changed), `doc-dim` (what is only context) |
+
+## What a page may add
+
+Only what belongs to the tool it documents, in its own CSS (`--css`):
+
+- the tool's colours (a track's Role, a signal's kind) and how its pictures are painted;
+- `--doc-hi` on `.doc`, the colour of what changed in a picture, when the tool's colours are near the kit's primary
+  (a blue or purple track under an indigo highlight cannot be told apart): `.doc { --doc-hi: #e8954a }`;
+- every such class named with the tool's prefix (`cont-bass`, not `bass`): a class called `input`, `btn`, `table`
+  or `card` takes the kit part's styles, and `check` refuses it inside a picture.
+
+Not on a page: `style="…"` for size, colour or font; a Tailwind utility the sample does not use (the built CSS does
+not contain it, so it does nothing); a font, script or stylesheet from outside.
+
+## When a part is missing
+
+Do not improvise it on the page: the next page will improvise it differently. Add it to the kit, in the kit's own
+repository (not in an installed copy):
+
+1. Find the daisyUI component for it (its class names: https://daisyui.com/SKILL.md, or `node_modules/daisyui`).
+   No component fits: add a `doc-…` class in `src/kit.css`, from the text sizes the kit already uses.
+2. Put an example of it in `src/sample.html`; the build keeps only what the sample uses.
+3. `pnpm build && pnpm test`, look at the sample, and add its row to the table above. (The build reads the
+   sample's class attributes only, so a word in its text never becomes a part.)
+
+Ask the user before adding a part: fewer parts is the point.

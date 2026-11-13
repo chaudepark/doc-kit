@@ -1,0 +1,26 @@
+{
+  "name": "doc-kit",
+  "version": "0.3.0",
+  "description": "One look for document pages (daisyUI 5 on Tailwind 4, prebuilt), with the skills that write them",
+  "scripts": {
+    "build": "sh scripts/build-kit.sh && python3 skills/doc-kit/scripts/dockit wrap src/sample.html -o skills/doc-kit/sample.html --title 'doc-kit sample' --lang en",
+    "test": "sh tests/test.sh",
+    "test:figures": "node tests/figure-check/run.mjs",
+    "deck:example": "node skills/d2-slides/assets/build-deck.mjs examples/d2-slides/deck.md --out examples/d2-slides/built"
+  },
+  "devDependencies": {
+    "@iconify-json/logos": "1.2.15",
+    "@iconify-json/lucide": "1.2.137",
+    "@mizchi/vlmkit": "^0.22.0",
+    "@tailwindcss/cli": "4.3.5",
+    "daisyui": "5.7.50",
+    "marked": "18.0.14",
+    "mermaid": "12.0.0",
+    "playwright": "1.56.1",
+    "tailwindcss": "4.3.5",
+    "vega": "6.4.0",
+    "vega-lite": "6.4.3"
+  },
+  "license": "MIT",
+  "private": true
+}

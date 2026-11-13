@@ -1,0 +1,91 @@
+/* doc-kit: one look for every document page. daisyUI 5 on Tailwind 4, built once into skills/doc-kit/kit.css
+   (scripts/build-kit.sh). Only what src/sample.html uses is built: the sample is the list of parts a page may use.
+   Tailwind is given the sample's class attributes (src/classes.txt), not the sample: it reads every word of a file
+   as a possible class, and the sample's prose ("input", "steps", "list") would bring daisyUI components in. */
+@import "tailwindcss" source(none);
+@source "./classes.txt";
+@plugin "daisyui" {
+  /* dark only, whatever the system says: the user finds a light page glaring */
+  themes: dark --default;
+}
+
+@theme {
+  /* Mac, Windows, Linux: a Japanese face each already has; no font is loaded */
+  --font-sans: "Hiragino Sans", "BIZ UDPGothic", "Yu Gothic UI", "Meiryo", "Noto Sans CJK JP", "Noto Sans JP", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@layer base {
+  body { background: var(--color-base-200); color: var(--color-base-content); font-family: var(--font-sans); }
+}
+
+@layer components {
+  /* the page: five text sizes in all (sm, base, lg, xl, 3xl), set here and by daisyUI's parts, never on a page */
+  .doc { @apply mx-auto grid gap-10 px-4 py-8 md:px-8; max-width: 105rem; line-height: 1.75; }
+  .doc :where(header, section) { @apply grid gap-4; min-width: 0; }
+  .doc :where(header) { justify-items: start; }
+  .doc :where(.btn, .badge) { justify-self: start; }
+  .doc :where(h1) { @apply text-3xl font-bold; text-wrap: balance; }
+  .doc :where(h2) { @apply text-xl font-bold; }
+  .doc :where(h3) { @apply text-lg font-bold; }
+  .doc :where(p, li) { max-width: 46em; }
+  .doc :where(ol) { @apply grid list-decimal gap-1 pl-6; }
+  .doc :where(ul) { @apply grid list-disc gap-1 pl-6; }
+  .doc :where(code) { @apply rounded px-1.5 font-mono text-sm text-primary; background: color-mix(in oklab, var(--color-base-content) 8%, transparent); }
+  .doc :where(a.card):hover, .doc :where(a.card):focus-visible { border-color: var(--color-primary); outline: none; }
+  .doc :where(pre) { @apply overflow-x-auto rounded-lg p-4 font-mono text-sm; line-height: 1.6; background: color-mix(in oklab, var(--color-base-content) 8%, transparent); }
+  .doc :where(pre code) { padding: 0; background: none; color: inherit; }
+  .doc :where(blockquote) { @apply border-l-4 pl-4; border-color: var(--color-base-300); opacity: .8; }
+  .doc :where(hr) { border-color: var(--color-base-300); }
+  .doc-lede { @apply text-lg; }
+  .doc-note { @apply text-sm; opacity: .7; }
+
+  /* grids: cards as many as fit, cards two at most, a setting's values side by side */
+  .doc-cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); }
+  .doc-cards-2 { @apply grid grid-cols-1 gap-4 lg:grid-cols-2; }
+  .doc-vals { display: grid; gap: 1.25rem 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.75rem), 1fr)); }
+  /* five values or fewer: wider columns, so a few pictures are not small ones; a phone: one the screen's width */
+  .doc-vals-few { grid-template-columns: repeat(auto-fit, minmax(min(100%, 13.75rem), 20rem)); }
+  @media (max-width: 40rem) { .doc-vals-few { grid-template-columns: 1fr; } }
+
+  /* one line of how: where, the setting, the value */
+  .doc-how { @apply flex flex-wrap items-center gap-2; }
+
+  /* before -> after: the same view on both sides */
+  .doc-ba { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .5rem; }
+  .doc-ba > :where(div) { @apply grid gap-1; min-width: 0; }
+  .doc-to { @apply text-xl; opacity: .5; }
+
+  /* a picture with its name and its one line */
+  .doc-pic { @apply m-0 grid content-start gap-1; min-width: 0; }
+  .doc-pic :where(figcaption) { @apply text-sm; }
+  .doc-pic :where(figcaption b) { @apply block font-mono text-base text-primary; }
+  .doc svg { display: block; width: 100%; height: auto; fill: currentColor; }
+  .doc svg text { font: 500 11px var(--font-sans); }
+  .doc-bg { fill: color-mix(in oklab, var(--color-base-content) 6%, transparent); }
+  /* --doc-hi: a page sets it when its tool's colours are near the primary (blue, purple) */
+  .doc-hi { fill: var(--doc-hi, var(--color-primary)); }
+  .doc-dim { opacity: .3; }
+
+  /* a heading that stays while its pictures scroll */
+  .doc-sticky { @apply sticky top-0 z-10 py-2; background: var(--color-base-200); }
+
+  /* one screen at a time, in one file: #name shows that view, #all (the id of main) shows everything */
+  .doc-view { display: none; }
+  .doc-home, .doc-view:target, .doc:target .doc-view { @apply grid gap-10; }
+  .doc:has(.doc-view:target) .doc-home { display: none; }
+
+  /* prose: a page written as Markdown (an explainer, a report, a book's chapter): one column to read */
+  .doc.doc-prose, .doc .doc-prose { max-width: 50rem; gap: 1rem; }
+  .doc-prose :where(h2) { @apply mt-8 border-t pt-6; border-color: var(--color-base-300); }
+  .doc-prose :where(h3) { @apply mt-4; }
+  .doc-prose :where(a):not(.btn, .tab, .card) { color: var(--color-primary); text-decoration: underline; }
+  .doc-prose :where(details) { @apply rounded-lg border px-4 py-2; border-color: var(--color-base-300); }
+  .doc-prose :where(summary) { @apply cursor-pointer font-bold; }
+  /* a figure made elsewhere (Mermaid, D2, a chart) is drawn for a white ground, and keeps one */
+  .doc-fig { margin: 0; }
+  .doc .doc-fig > :is(svg, img) { display: block; width: auto; max-width: 100%; height: auto; max-height: 45rem; margin: 0 auto; border-radius: .5rem; background: #fff; color: #1f2328; fill: initial; }
+  .doc-fig :where(figcaption) { @apply mt-2 text-center text-sm; opacity: .7; }
+  /* a book's chapters: the one before, the contents, the one after */
+  .doc-book { @apply flex flex-wrap justify-between gap-x-4 gap-y-2 border-y py-3 text-sm; border-color: var(--color-base-300); }
+}
