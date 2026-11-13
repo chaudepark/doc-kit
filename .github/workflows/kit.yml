@@ -19,7 +19,7 @@ jobs:
   # Runs the updated packages' code, so it holds no permission to write. Only this repository's own update branches.
   rebuild:
     if: startsWith(github.head_ref, 'renovate/') && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       look: ${{ steps.look.outputs.look }}
     steps:
@@ -78,7 +78,7 @@ jobs:
   commit:
     needs: rebuild
     if: needs.rebuild.outputs.look == 'same'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
       actions: write
