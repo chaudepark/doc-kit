@@ -6,7 +6,7 @@
   "packageRules": [
     {
       "description": "The tests say whether these broke anything: merged without a person when the checks are green.",
-      "matchPackageNames": ["playwright", "marked", "@iconify-json/*", "@mizchi/vlmkit"],
+      "matchPackageNames": ["playwright", "marked", "@iconify-json/*"],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true
     },
@@ -22,6 +22,12 @@
       "matchPackageNames": ["daisyui", "tailwindcss", "@tailwindcss/cli"],
       "automerge": false,
       "prBodyNotes": ["On this branch: `pnpm build`, look at `skills/doc-kit/sample.html`, commit the built `kit.css` and `sample.html`, and bump the plugin's version. Repositories that copied `kit.css` copy it again."]
+    },
+    {
+      "description": "A 0.x tool whose page gates the checks do not run (only figure-check calls it).",
+      "matchPackageNames": ["@mizchi/vlmkit"],
+      "automerge": false,
+      "prBodyNotes": ["On this branch: run `verify-doc.mjs` on `docs/figure-cheatsheet` and `docs/dataviz`, and the four gate commands in `examples/d2-slides/README.md`."]
     },
     {
       "description": "The sample documents quote these tools' versions and output.",
