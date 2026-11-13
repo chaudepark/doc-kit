@@ -2,6 +2,7 @@
   "name": "doc-kit",
   "version": "0.3.1",
   "description": "One look for document pages (daisyUI 5 on Tailwind 4, prebuilt), with the skills that write them",
+  "packageManager": "pnpm@12.18.0",
   "scripts": {
     "build": "sh scripts/build-kit.sh && python3 skills/doc-kit/scripts/dockit wrap src/sample.html -o skills/doc-kit/sample.html --title 'doc-kit sample' --lang en",
     "test": "sh tests/test.sh",

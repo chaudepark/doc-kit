@@ -1,0 +1,34 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
+  "minimumReleaseAge": "7 days",
+  "platformAutomerge": false,
+  "packageRules": [
+    {
+      "description": "The tests say whether these broke anything: merged without a person when the checks are green.",
+      "matchPackageNames": ["playwright", "marked", "@iconify-json/*", "@mizchi/vlmkit"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "description": "The actions the checks run on.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "digest", "pinDigest"],
+      "automerge": true
+    },
+    {
+      "description": "The look. kit.css is built from these and committed, so the test fails until someone rebuilds it.",
+      "groupName": "the kit (daisyUI and Tailwind)",
+      "matchPackageNames": ["daisyui", "tailwindcss", "@tailwindcss/cli"],
+      "automerge": false,
+      "prBodyNotes": ["On this branch: `pnpm build`, look at `skills/doc-kit/sample.html`, commit the built `kit.css` and `sample.html`, and bump the plugin's version. Repositories that copied `kit.css` copy it again."]
+    },
+    {
+      "description": "The sample documents quote these tools' versions and output.",
+      "groupName": "the sample documents' tools",
+      "matchPackageNames": ["mermaid", "vega", "vega-lite", "ml-matrix"],
+      "automerge": false,
+      "prBodyNotes": ["On this branch: run `verify-doc.mjs` on `docs/figure-cheatsheet` and `docs/dataviz` (both pages of each), update the versions in their `checks.json` and text, and render the figures again with `--write`."]
+    }
+  ]
+}

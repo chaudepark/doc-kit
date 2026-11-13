@@ -87,6 +87,8 @@ pnpm exec playwright install chromium && sh scripts/setup-d2.sh   # 次の行の
 pnpm test:figures   # figure-check の回帰テスト（ブラウザと d2 を使う）
 ```
 
+GitHub Actions が、push とプルリクエストのたびに 2 つのテストを走らせます（`.github/workflows/test.yml`）。依存の更新は Renovate がします（`renovate.json`）。テストで確かめられるものは自動でマージし、見た目の元（daisyUI・Tailwind）と、見本の資料が引用している道具は、作り直しと目視が要るのでプルリクエストまでです。
+
 テーマと色は `src/kit.css` の `@plugin "daisyui"` の行、部品は `src/kit.css` の `doc-` のクラスと `src/sample.html` です。`skills/doc-kit/kit.css` は手で直しません。
 
 既知の点：`figure-check` は、Mermaid の図をコミット済みの SVG とバイト単位で比べます。Mermaid は文字の配置にその機械のフォントを使うので、ある OS で描いた図は、別の OS では「古い」と判定されます。その機械で `--write` を付けて描き直してください。
@@ -105,6 +107,7 @@ pnpm test:figures   # figure-check の回帰テスト（ブラウザと d2 を�
 | `tests/` | `test.sh`（全体）と、取り込んだスキルのテスト（`d2/`、`figure-check/`、`first-reader/`） |
 | `scripts/` | `build-kit.sh` と、`setup-d2.sh`・`setup-tla.sh`（道具を `.tools/` に取得する） |
 | `.claude-plugin/` | プラグインとマーケットプレイスの定義 |
+| `.github/`, `renovate.json` | push とプルリクエストのときの検査、依存の更新 |
 
 ## ライセンス
 

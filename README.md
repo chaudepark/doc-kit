@@ -87,6 +87,8 @@ pnpm exec playwright install chromium && sh scripts/setup-d2.sh   # once, for th
 pnpm test:figures   # figure-check's regression tests (a browser and d2)
 ```
 
+GitHub Actions runs both test commands on every push and pull request (`.github/workflows/test.yml`). Renovate keeps the dependencies up to date (`renovate.json`): it merges by itself what the tests can vouch for, and opens a pull request for the kit's own (daisyUI, Tailwind) and for the tools the sample documents quote, because those need a rebuild and a look.
+
 The theme and colours are the `@plugin "daisyui"` line of `src/kit.css`; the parts are its `doc-` classes and `src/sample.html`. `skills/doc-kit/kit.css` is never edited by hand.
 
 Known: `figure-check` compares a Mermaid figure with its committed SVG byte for byte, and Mermaid lays text out with the machine's fonts. A figure rendered on one OS reads as stale on another; render it again there with `--write`.
@@ -105,6 +107,7 @@ Known: `figure-check` compares a Mermaid figure with its committed SVG byte for 
 | `tests/` | `test.sh` (the whole) and the imported skills' tests (`d2/`, `figure-check/`, `first-reader/`) |
 | `scripts/` | `build-kit.sh`, and `setup-d2.sh` / `setup-tla.sh` (fetch tools into `.tools/`) |
 | `.claude-plugin/` | the plugin and marketplace definitions |
+| `.github/`, `renovate.json` | the checks on a push and a pull request, the dependency updates |
 
 ## License
 
