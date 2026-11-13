@@ -1,0 +1,4 @@
+#!/bin/sh
+# Before a commit: the built kit matches src/, dockit's checks, the page builder, the imported skills' tests.
+# Set up by `pnpm install` (the prepare script points git's hooksPath here).
+exec pnpm test
