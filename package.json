@@ -11,7 +11,7 @@
     "deck:example": "node skills/d2-slides/assets/build-deck.mjs examples/d2-slides/deck.md --out examples/d2-slides/built"
   },
   "devDependencies": {
-    "@iconify-json/logos": "1.2.15",
+    "@iconify-json/logos": "1.2.19",
     "@iconify-json/lucide": "1.2.137",
     "@mizchi/vlmkit": "^0.22.0",
     "@tailwindcss/cli": "4.3.5",
