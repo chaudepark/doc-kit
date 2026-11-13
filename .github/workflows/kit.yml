@@ -1,0 +1,125 @@
+name: kit
+
+# A dependency update can change what src/ builds into. kit.css is committed (a plugin is installed without a
+# build), so someone has to rebuild it. This does: it rebuilds on the update's branch, and lets the update
+# through only when the sample page looks the same before and after, pixel for pixel. A look that changed is
+# left for a person, with the pictures.
+on:
+  pull_request:
+    paths: [package.json, pnpm-lock.yaml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kit-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Runs the updated packages' code, so it holds no permission to write. Only this repository's own update branches.
+  rebuild:
+    if: startsWith(github.head_ref, 'renovate/') && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    outputs:
+      look: ${{ steps.look.outputs.look }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # the commit this run is about: if the branch moves meanwhile, the push below is refused and the newer run takes over
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - id: changed
+        run: |
+          if git diff --quiet -- skills/doc-kit/kit.css skills/doc-kit/sample.html src/classes.txt
+          then echo "changed=no" >> "$GITHUB_OUTPUT"
+          else echo "changed=yes" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.changed.outputs.changed == 'yes'
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+          pnpm exec playwright install --with-deps chromium
+      - id: look
+        env:
+          CHANGED: ${{ steps.changed.outputs.changed }}
+        run: |
+          if [ "$CHANGED" = no ]; then echo "look=unchanged" >> "$GITHUB_OUTPUT"; exit 0; fi
+          mkdir -p look
+          git show HEAD:skills/doc-kit/sample.html > look/before.html
+          node scripts/look.mjs look/before.html look/before
+          node scripts/look.mjs skills/doc-kit/sample.html look/after
+          if diff -rq look/before look/after
+          then echo "look=same" >> "$GITHUB_OUTPUT"
+          else echo "look=different" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.look.outputs.look == 'same'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kit
+          path: skills/doc-kit/kit.css
+      - if: steps.look.outputs.look == 'different'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: look
+          path: look/
+      - if: steps.look.outputs.look == 'different'
+        run: |
+          echo "::error::The sample page looks different with this update. Compare the pictures in the 'look' artifact; if the new look is right, run pnpm build on this branch, bump the version above the one on main, and commit."
+          exit 1
+
+  # Holds the permission to write, so it runs nothing the update brought: it takes one file from the job above,
+  # the built CSS, and makes the rest itself with the checkout's own standard-library script.
+  commit:
+    needs: rebuild
+    if: needs.rebuild.outputs.look == 'same'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: kit
+          # outside the checkout: whatever else the artifact holds never lands in the tree
+          path: ${{ runner.temp }}/kit
+      - name: Take the built CSS, make the sample from it, bump the version, commit, and ask for the tests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          css="$RUNNER_TEMP/kit/kit.css"
+          test -f "$css" && ! test -L "$css"
+          cp "$css" skills/doc-kit/kit.css
+          python3 skills/doc-kit/scripts/dockit classes src/sample.html > src/classes.txt
+          python3 skills/doc-kit/scripts/dockit wrap src/sample.html -o skills/doc-kit/sample.html --title 'doc-kit sample' --lang en
+          # the same checker every page meets: among other things, the CSS loads nothing from outside
+          python3 skills/doc-kit/scripts/dockit check skills/doc-kit/sample.html
+          if git diff --quiet -- skills/doc-kit/kit.css skills/doc-kit/sample.html src/classes.txt; then
+            echo "the branch already has this build"
+          else
+            python3 - <<'EOF'
+          import json, pathlib, re
+          for name in ("package.json", ".claude-plugin/plugin.json"):
+              path = pathlib.Path(name)
+              text = path.read_text(encoding="utf-8")
+              major, minor, patch = json.loads(text)["version"].split(".")
+              bumped = '"version": "%s.%s.%d"' % (major, minor, int(patch) + 1)
+              path.write_text(re.sub(r'"version": "[^"]+"', bumped, text, count=1), encoding="utf-8")
+          EOF
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add skills/doc-kit/kit.css skills/doc-kit/sample.html src/classes.txt package.json .claude-plugin/plugin.json
+            git commit -m "Rebuild the kit for this update (the sample page looks the same, pixel for pixel)"
+            git push origin "HEAD:refs/heads/$BRANCH"
+          fi
+          # a push made with the workflow's own token starts no workflow: ask for the tests on the new commit
+          gh workflow run test.yml --ref "$BRANCH"

@@ -25,13 +25,22 @@ def paragraphs(text):
     return [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
 
 
+# Modified in doc-kit (2026-11): Japanese and Chinese text has no spaces between words, so the scanner's glance
+# is cut by characters there, and a sentence also ends at an ideographic full stop.
+_CJK = re.compile(r"[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uff66-\uff9f]")
+FIRST_CJK_CHARS = 24
+
+
 def first_sentence(p):
-    m = re.match(r".+?[.!?](?=\s|$)", p, re.S)
+    m = re.match(r".+?(?:[.!?](?=\s|$)|[\u3002\uff01\uff1f])", p, re.S)
     return (m.group(0) if m else p).replace("\n", " ")
 
 
 def first_words(p, n=FIRST_WORDS):
-    words = p.replace("\n", " ").split()
+    line = p.replace("\n", " ").strip()
+    words = line.split()
+    if len(_CJK.findall(line)) > len(words):
+        return line if len(line) <= FIRST_CJK_CHARS else line[:FIRST_CJK_CHARS] + " ..."
     if len(words) <= n:
         return " ".join(words)
     return " ".join(words[:n]) + " ..."

@@ -1,6 +1,6 @@
 ---
 name: explainer
-description: 特定の読み手に向けて、概念・PR・設計を「冗長にならない水準」の速習資料として説明し、図と主張を道具で検証する。読み手のペルソナ（既に知っていること・知らないこと・読み方）を質問と公開情報から作り、その差分だけを書く。図は Mermaid / D2 で描いて事実シートに照らし、本文に引用するコード・出力は再実行して照合し、HTML は vlmkit のゲートに通す。Use when the user says "explain this to me / to <person>", "速習資料", "解説ドキュメント", "この PR を理解したい", "わかるように説明して", "I can't keep up with what the agent wrote", "この PR を <人> が理解できるように説明して", or when a reviewer asks what a change does. Use it even for a small diff or a chat-only answer whenever a named reader (a reviewer, an on-call engineer, a teammate, a PM) is given. Also when model or analysis results (diagnostics, metrics, charts) must be explained to someone who decides on them, e.g. "このモデルを本番に出してよいか <人> が判断できるように". Also when the user wrote an explanation themselves and lost confidence in it. Also for a general topic with no tool behind it. Not for how to use a tool (a manual, a cheat sheet, 早見表, 使い方のページ: the picture-manual skill does that). The HTML's look is the doc-kit skill's.
+description: 特定の読み手に向けて、概念・PR・設計を「冗長にならない水準」の速習資料として説明し、図と主張を道具で検証する。読み手のペルソナ（既に知っていること・知らないこと・読み方）を質問と公開情報から作り、その差分だけを書く。図は Mermaid / D2 で描いて事実シートに照らし、本文に引用するコード・出力は再実行して照合し、HTML は vlmkit のゲートに通す。Use when the user says "explain this to me / to <person>", "速習資料", "解説ドキュメント", "この PR を理解したい", "わかるように説明して", "I can't keep up with what the agent wrote", "この PR を <人> が理解できるように説明して", or when a reviewer asks what a change does. Use it even for a small diff or a chat-only answer whenever a named reader (a reviewer, an on-call engineer, a teammate, a PM) is given. Also when model or analysis results (diagnostics, metrics, charts) must be explained to someone who decides on them, e.g. "このモデルを本番に出してよいか <人> が判断できるように". Also when the user wrote an explanation themselves and lost confidence in it. Also for a general topic with no tool behind it. Not for how to use a tool (a manual, a cheat sheet, 早見表, 使い方のページ: the picture-manual skill does that). The HTML's look is the doc-kit skill's, and the document is verified and read by simulated readers (the first-reader skill) before it is handed over, without the user asking.
 ---
 
 # explainer
@@ -16,6 +16,10 @@ ELI5 との違いは 2 つ。
 
 読了が 20 分を超える、演習が要る、概念に順序がある。このどれかなら、章立ての `explainer-book` を使う。
 道具の使い方を絵で見せるページ（マニュアル・早見表）は `picture-manual` を使う。このスキルが受けるのは、概念・PR・設計・分析結果を 1 人の読み手に説明することと、道具の無い一般の話題。
+
+このスキルは、プラグインの「ページの作り方」（`../doc-kit/SKILL.md` の "Every page goes the same way"）の 1 段。資料を作る前に、その節を読む。
+資料を作るときは、図の検査（手順 6）、検証（手順 7）、読ませる（手順 8）、HTML とその目視（手順 9）を、頼まれなくても毎回行う。使う人は、フラグもスキルの名前も言わない。
+省いてよい場合と、省いたときに伝えることは、doc-kit のその節に書いてある（言葉も順序も変えない直しか、使う人が省くと言ったとき。手順 8 だけ）。
 
 ## 準備（初回だけ）
 
@@ -41,7 +45,7 @@ D2 の図（`figures/*.d2`）を使うときは `d2` の CLI、データの図�
 6. 図          references/figures.md。事実シート（*.facts.json）を先に、図は後
 7. 検証        node <skill>/scripts/verify-doc.mjs <doc-dir> が VERIFIED になるまで
 8. 読ませる    first-reader スキルで、ペルソナ本人を読み手にして読ませる。途中で離脱した箇所と、翌日残ったものを見る
-9. 渡す        HTML（dist/index.html）と要約。検証できなかったことは「未検証」と明記
+9. 渡す        HTML（dist/index.html）を shots.sh（`../picture-manual/scripts/`）で撮って、パソコン幅とスマホ幅で目で見る。渡すのは HTML と要約、読み手が言ったこと 2〜3 行とそれで直した所。検証できなかったことは「未検証」と明記
 ```
 
 ### 1. ペルソナ

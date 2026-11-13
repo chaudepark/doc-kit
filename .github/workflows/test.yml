@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # the kit workflow asks for a run on a commit it pushed (a push with a workflow's token starts none)
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -26,7 +28,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
 
-  # figure-check's regression tests: a real browser and the pinned d2
+  # figure-check's regression tests (a real browser and the pinned d2), and vlmkit's page gates on the example deck
   figures:
     # Playwright 1.56 has no browser for the newest Ubuntu image: stay on the one it supports
     runs-on: ubuntu-24.04

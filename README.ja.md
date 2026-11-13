@@ -21,6 +21,8 @@ claude plugin install doc-kit@doc-kit
 Claude Code の中からは `/plugin marketplace add chaudepark/doc-kit` と `/plugin install doc-kit@doc-kit` です。
 更新は `claude plugin marketplace update doc-kit` のあとに `claude plugin update doc-kit@doc-kit` です。入れたあと、動いているセッションは起動し直します。
 
+スキルの名前もフラグも言う必要はありません。やりたいことを言えば、スキル同士が呼び合います。どのページも、スクリプトで検査し、画面を撮って確かめ、模擬読者に読ませてから渡します。
+
 | スキル | 頼み方の例 | Claude がすること |
 |---|---|---|
 | `doc-kit` | 「HTML でまとめて」「見た目を揃えて」 | 見本にある部品だけでページを組み、`dockit` で確かめる。ほかのスキルが作るページの見た目もこれ（`d2-slides` のスライドと、`first-reader` が作る読みの記録のページは別） |
@@ -38,15 +40,16 @@ Claude Code の中からは `/plugin marketplace add chaudepark/doc-kit` と `/p
 ## 何をするか
 
 ```
-頼む ─→ スキルが手順を決める ─→ 本文（部品だけ） ─→ 1 ファイルの HTML ─→ 検査 ─→ 目で見る
-          │                        │                   │                  │
-     picture-manual           見本にある部品        kit.css を埋め込む   dockit check
-     explainer ほか           （sample.html）       ダークのみ           画面を撮って確かめる
+頼む ─→ スキルが手順を決める ─→ 本文（部品だけ） ─→ 1 ファイルの HTML ─→ 検査 ─→ 目で見る ─→ 読ませる
+          │                        │                   │                  │                │
+     picture-manual           見本にある部品        kit.css を埋め込む   dockit check     first-reader
+     explainer ほか           （sample.html）       ダークのみ           画面を撮る       （模擬読者）
 ```
 
 - **読むページの見た目は 1 つ**（例外は、スライドと、`first-reader` が作る読みの記録のページ）：`skills/doc-kit/kit.css`（daisyUI 5 と Tailwind CSS 4 から作り済み）。フォント、文字の大きさ（5 種類）、幅、色はここだけで決まります。ページはダークだけです。
 - **部品は見本にあるものだけ**：`skills/doc-kit/sample.html` が、使ってよい部品の一覧です。ビルドに残るのは見本が使うクラスだけなので、見本に無いものはページで効きません。
 - **検査**：`dockit check` が、見本に無いクラス、古い `kit.css`、部品と同じ名前の絵のクラス、カードと着いた画面で違う見出し、外部の読み込みを止めます。
+- **渡す前に読ませる**：`first-reader` の模擬読者が、どのページも先に読みます（マニュアルは、使う人が持ってくる「やりたいこと」で探させ、文章は頭から読ませる。本は、最初の章と演習の章）。つまずいた所は、渡す前に直します。省くのは、言葉も順序も変えない直しのときと、あなたが省くと言ったときだけです。
 - **1 ファイル**：できたページは、オフラインでもスマホでも開けます。使う側のリポジトリに Node もビルドも要りません（`dockit` は Python 3.9 の標準ライブラリだけ）。
 - **言語を問わない**：ページの言語は本文から決まります（地の文にかながあれば日本語、なければ英語。コードは数えません）。`--lang` でも指定できます。フォントは、Mac・Windows・Linux に元からある欧文と日本語の書体です。
 
@@ -83,11 +86,11 @@ D2 の図には `d2` の CLI、データの図には `vega` と `vega-lite`、�
 pnpm install
 pnpm build          # src/ から skills/doc-kit/kit.css と sample.html を作り直す
 pnpm test           # 作り済みのファイルが src と合っているか、check が効くか、explainer が kit のページを出すか、ブラウザの要らない取り込みテスト
-pnpm exec playwright install chromium && sh scripts/setup-d2.sh   # 次の行のために、初回だけ
-pnpm test:figures   # figure-check の回帰テスト（ブラウザと d2 を使う）
+sh scripts/setup-d2.sh   # 次の行のために、初回だけ
+pnpm test:figures   # figure-check の回帰テストと、見本のスライドのページ検査（ブラウザと d2 を使う）
 ```
 
-`pnpm install` は、コミットの前に `pnpm test` を走らせるフック（`.githooks/pre-commit`）を設定します。GitHub Actions が、push とプルリクエストのたびに 2 つのテストを走らせます（`.github/workflows/test.yml`）。依存の更新は Renovate がします（`renovate.json`）。テストで確かめられるものは自動でマージし、見た目の元（daisyUI・Tailwind）と、見本の資料が引用している道具は、作り直しと目視が要るのでプルリクエストまでです。
+`pnpm install` は、コミットの前に `pnpm test` を走らせるフック（`.githooks/pre-commit`）を設定します。GitHub Actions が、push とプルリクエストのたびに 2 つのテストを走らせます（`.github/workflows/test.yml`）。依存の更新は Renovate がします（`renovate.json`）。検査で確かめられるものは自動でマージします。見た目の元（daisyUI・Tailwind）は、`kit` のワークフローが更新のブランチで `kit.css` を作り直し、見本のページが前後で 1 ピクセルも変わらなければそのまま通します（`scripts/look.mjs`）。見た目が変わったときだけ、前後の画像を付けて人を待ちます。見本の資料が引用している道具は、測り直しが要るので、Dependency Dashboard で頼んだときだけ更新します。
 
 テーマと色は `src/kit.css` の `@plugin "daisyui"` の行、部品は `src/kit.css` の `doc-` のクラスと `src/sample.html` です。`skills/doc-kit/kit.css` は手で直しません。
 
@@ -98,14 +101,14 @@ pnpm test:figures   # figure-check の回帰テスト（ブラウザと d2 を�
 | パス | 内容 |
 |---|---|
 | `src/kit.css`, `src/sample.html` | 見た目の元。Tailwind と daisyUI の入口、`doc-` の部品、見本の本文（`src/classes.txt` は見本から作る） |
-| `skills/doc-kit/` | 見た目のスキル。作り済みの `kit.css` と `sample.html`、`scripts/dockit`（wrap / check） |
+| `skills/doc-kit/` | 見た目のスキル。作り済みの `kit.css` と `sample.html`、`scripts/dockit`（wrap / check / text） |
 | `skills/picture-manual/` | 絵で説明するマニュアル。`scripts/shots.sh` はページの撮影（パソコン幅とスマホ幅） |
 | `skills/explainer/`, `skills/explainer-book/` | 読み手 1 人に向けた説明と本。`scripts/build-html.mjs` が kit のページを出す |
 | `skills/first-reader/` | 模擬読者（Apache-2.0） |
 | `skills/d2-diagram/`, `skills/d2-slides/` | D2 の図とスライド |
 | `docs/`, `examples/` | 見本の資料（図の道具の使い分け、データの図）と、見本のスライド。どれも `README.md`（英語）と `README.ja.md` がある |
-| `tests/` | `test.sh`（全体）と、取り込んだスキルのテスト（`d2/`、`figure-check/`、`first-reader/`） |
-| `scripts/` | `build-kit.sh` と、`setup-d2.sh`・`setup-tla.sh`（道具を `.tools/` に取得する） |
+| `tests/` | `test.sh`（全体）と、取り込んだスキルのテスト（`d2/`、`figure-check/`、`first-reader/`）、`deck-gates.sh`（見本のスライドのページ検査） |
+| `scripts/` | `build-kit.sh`、`look.mjs`（ページの画像。見た目を前後で比べる）と、`setup-d2.sh`・`setup-tla.sh`（道具を `.tools/` に取得する） |
 | `.claude-plugin/` | プラグインとマーケットプレイスの定義 |
 | `.github/`, `.githooks/`, `renovate.json` | push とプルリクエストのときの検査、コミット前の検査、依存の更新 |
 

@@ -12,4 +12,8 @@ Changes in this copy (explainer project, 2026-09):
 Changes in doc-kit (2026-11):
 - README.md: a note on where the skill and its tests are in doc-kit; the link to the tests points there.
 - README.ja.md added (a Japanese translation of README.md).
+- scripts/skim.py: the scanner's view cuts text written without spaces (Japanese, Chinese) by characters, and a
+  sentence also ends at an ideographic full stop (tests/first-reader/test_cjk.py).
+- SKILL.md: the description and the user contract say that the other skills of the doc-kit plugin run this
+  as their last step without being asked.
 - Tests live in tests/first-reader/ of the doc-kit repository.

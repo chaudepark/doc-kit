@@ -21,6 +21,8 @@ claude plugin install doc-kit@doc-kit
 Inside Claude Code: `/plugin marketplace add chaudepark/doc-kit` and `/plugin install doc-kit@doc-kit`.
 To update: `claude plugin marketplace update doc-kit`, then `claude plugin update doc-kit@doc-kit`. Restart running sessions afterwards.
 
+You do not name a skill or pass a flag. Say what you want; the skills call each other, and every page is checked by a script, looked at as screenshots, and read by simulated readers before you get it.
+
 | Skill | You say | Claude does |
 |---|---|---|
 | `doc-kit` | "put this together as HTML", "make these pages look the same" | builds the page from the parts in the sample only, and checks it with `dockit`. The pages the other skills make take this look (a deck from `d2-slides` and the page `first-reader` builds of a read keep their own) |
@@ -38,15 +40,16 @@ What was taken in from other projects is listed in [NOTICE.md](NOTICE.md). The f
 ## What it does
 
 ```
-ask ─→ a skill sets the steps ─→ the body (parts only) ─→ one HTML file ─→ check ─→ look at it
-          │                          │                       │               │
-     picture-manual            the parts in the        kit.css inlined   dockit check
-     explainer, ...            sample (sample.html)    dark only         screenshots
+ask ─→ a skill sets the steps ─→ the body (parts only) ─→ one HTML file ─→ check ─→ look at it ─→ have it read
+          │                          │                       │               │                      │
+     picture-manual            the parts in the        kit.css inlined   dockit check          first-reader
+     explainer, ...            sample (sample.html)    dark only         screenshots           (simulated readers)
 ```
 
 - **One look** for pages that are read (two exceptions: a slide deck, and the page `first-reader` builds of a read): `skills/doc-kit/kit.css`, prebuilt from daisyUI 5 and Tailwind CSS 4. Fonts, text sizes (five of them), widths and colours are decided there and nowhere else. Pages are dark only.
 - **Only the parts in the sample**: `skills/doc-kit/sample.html` is the list of parts a page may use. The build keeps only the classes the sample uses, so anything else does nothing on a page.
 - **Checked**: `dockit check` stops a page that uses a class the sample does not have, carries an old `kit.css`, names a picture's class like a part, heads a screen in other words than the card that opens it, or loads something from outside.
+- **Read before you read it**: `first-reader`'s simulated readers go through every page (a manual with the wishes a user would come with, prose from top to bottom; of a book, its first chapter and the chapters with exercises), and what they stumbled on is fixed first. It is left out only for a change that touches neither the words nor their order, or when you say so.
 - **One file**: a page opens offline and on a phone. The repository that uses the kit needs no Node and no build (`dockit` is Python 3.9, standard library only).
 - **Any language**: a page takes its language from its text (Japanese when its prose has kana, otherwise English; code is not counted), or from `--lang`. The fonts are the ones Mac, Windows and Linux already have for Latin and Japanese.
 
@@ -83,11 +86,11 @@ D2 figures need the `d2` CLI, data figures `vega` and `vega-lite`, icons `@iconi
 pnpm install
 pnpm build          # src/ → skills/doc-kit/kit.css and sample.html
 pnpm test           # the built files match src, check works, explainer gives kit pages, the imported tests that need no browser
-pnpm exec playwright install chromium && sh scripts/setup-d2.sh   # once, for the next line
-pnpm test:figures   # figure-check's regression tests (a browser and d2)
+sh scripts/setup-d2.sh   # once, for the next line
+pnpm test:figures   # figure-check's regression tests and the example deck's page gates (a browser and d2)
 ```
 
-`pnpm install` sets a pre-commit hook (`.githooks/pre-commit`) that runs `pnpm test`. GitHub Actions runs both test commands on every push and pull request (`.github/workflows/test.yml`). Renovate keeps the dependencies up to date (`renovate.json`): it merges by itself what the tests can vouch for, and opens a pull request for the kit's own (daisyUI, Tailwind) and for the tools the sample documents quote, because those need a rebuild and a look.
+`pnpm install` sets a pre-commit hook (`.githooks/pre-commit`) that runs `pnpm test`. GitHub Actions runs both test commands on every push and pull request (`.github/workflows/test.yml`). Renovate keeps the dependencies up to date (`renovate.json`): it merges by itself what the checks can vouch for. For the kit's own (daisyUI, Tailwind), the `kit` workflow rebuilds `kit.css` on the update's branch and lets it through when the sample page looks the same before and after, pixel for pixel (`scripts/look.mjs`); a look that changed waits for a person, with the pictures. The tools the sample documents quote are updated only when asked for on the Dependency Dashboard, because that means measuring again.
 
 The theme and colours are the `@plugin "daisyui"` line of `src/kit.css`; the parts are its `doc-` classes and `src/sample.html`. `skills/doc-kit/kit.css` is never edited by hand.
 
@@ -98,14 +101,14 @@ Known: `figure-check` compares a Mermaid figure with its committed SVG byte for 
 | Path | What |
 |---|---|
 | `src/kit.css`, `src/sample.html` | the look's source: the entry for Tailwind and daisyUI, the `doc-` parts, the sample's body (`src/classes.txt` is made from it) |
-| `skills/doc-kit/` | the look as a skill: the built `kit.css` and `sample.html`, `scripts/dockit` (wrap / check) |
+| `skills/doc-kit/` | the look as a skill: the built `kit.css` and `sample.html`, `scripts/dockit` (wrap / check / text) |
 | `skills/picture-manual/` | manuals in pictures; `scripts/shots.sh` takes a page's screenshots at desktop and phone width |
 | `skills/explainer/`, `skills/explainer-book/` | explanations for one reader, and books; `scripts/build-html.mjs` gives kit pages |
 | `skills/first-reader/` | simulated readers (Apache-2.0) |
 | `skills/d2-diagram/`, `skills/d2-slides/` | D2 diagrams and decks |
 | `docs/`, `examples/` | sample documents (which figure tool to use, data figures) and a sample deck; each has `README.md` (English) and `README.ja.md` |
-| `tests/` | `test.sh` (the whole) and the imported skills' tests (`d2/`, `figure-check/`, `first-reader/`) |
-| `scripts/` | `build-kit.sh`, and `setup-d2.sh` / `setup-tla.sh` (fetch tools into `.tools/`) |
+| `tests/` | `test.sh` (the whole) and the imported skills' tests (`d2/`, `figure-check/`, `first-reader/`), and `deck-gates.sh` (the example deck's page gates) |
+| `scripts/` | `build-kit.sh`, `look.mjs` (pictures of a page, to compare a look before and after), and `setup-d2.sh` / `setup-tla.sh` (fetch tools into `.tools/`) |
 | `.claude-plugin/` | the plugin and marketplace definitions |
 | `.github/`, `.githooks/`, `renovate.json` | the checks on a push and a pull request, the check before a commit, the dependency updates |
 

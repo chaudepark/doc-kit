@@ -1,6 +1,6 @@
 ---
 name: doc-kit
-description: The house look for standalone HTML document pages — manuals, cheat sheets, how-to pages, explainers, reports, research notes — in any of the user's repositories. One prebuilt CSS (daisyUI 5 on Tailwind 4) and a fixed list of parts, so every page has the same fonts, sizes and layout and none is designed from scratch. It decides how a page looks, not what goes on it: for a tool's manual or cheat sheet (マニュアル, 早見表, チートシート, 使い方のページ) the picture-manual skill decides the content, for an explanation to a reader (説明ページ) the explainer skill does, and both take their look from here. Use it together with them, or alone when the content is already decided (a report, research notes, レポート as HTML, a 手順書 that is already written), when you restyle or review a page, or when the user says pages look different from each other (見た目を揃えたい, デザインシステム). Not for slides (the d2-slides skill keeps a deck's own look), a web app or site with its own design, nor for Markdown.
+description: The house look for standalone HTML document pages — manuals, cheat sheets, how-to pages, explainers, reports, research notes — in any of the user's repositories. One prebuilt CSS (daisyUI 5 on Tailwind 4) and a fixed list of parts, so every page has the same fonts, sizes and layout and none is designed from scratch. It decides how a page looks, not what goes on it: for a tool's manual or cheat sheet (マニュアル, 早見表, チートシート, 使い方のページ) the picture-manual skill decides the content, for an explanation to a reader (説明ページ) the explainer skill does, and both take their look from here. Use it together with them, or alone when the content is already decided (a report, research notes, レポート as HTML, a 手順書 that is already written), when you restyle or review a page, or when the user says pages look different from each other (見た目を揃えたい, デザインシステム). Whichever skill the request reaches, the page is checked, looked at and read by simulated readers (the first-reader skill) before it is handed over; the user does not ask for any of that. Not for slides (the d2-slides skill keeps a deck's own look), a web app or site with its own design, nor for Markdown.
 ---
 
 # doc-kit
@@ -18,11 +18,41 @@ shown one at a time, not a page that is read; and the page `first-reader` builds
 (a tool's record of one run, not a document someone wrote). Do not put `kit.css` on either, nor their styles on a
 page.
 
+## Every page goes the same way
+
+The user says what they want and nothing else: no flag, no skill's name, no "and check it". Whichever skill of
+this plugin the request reaches first, the page goes through all of these, in this order, without being asked:
+
+1. **What goes on it.** How to use a tool (a manual, a cheat sheet, a how-to): read the `picture-manual` skill
+   now and follow it. An explanation for a reader (a concept, a change, a result): the `explainer` skill
+   (`explainer-book` when it needs chapters). Content that is already written: go on.
+2. **Figures.** A diagram of boxes and lines or a chart is made and checked as the explainer skill's
+   `references/figures.md` says (a D2 diagram: the `d2-diagram` skill) and placed as `doc-fig`. A picture of
+   what a tool does is drawn from the tool's real output (picture-manual).
+3. **The look.** The parts below, then `dockit wrap` and `dockit check` ("Make a page").
+4. **Look at it** at desktop and phone width, and read the images.
+5. **Have it read.** The `first-reader` skill reads the page before the user does. A wide page (cards, a
+   manual, a cheat sheet) is reference material in its terms: its readers come with a wish and look for it,
+   so give them the page's wishes as lookup tasks, and two or three wishes the page does not name. A prose
+   page gets the full read. The text to read is the source Markdown when there is one, otherwise
+   `python3 scripts/dockit text page.html > page.txt`. Fix what the readers stumbled on, run the check again,
+   and have the same readers read once more; what still stumbles after that goes in the hand-over, not into a
+   third round. The page first-reader builds of the read stays beside the run: do not publish it or open it,
+   give its path. (A book: at least its first chapter and the chapters with exercises, as explainer-book says.
+   A trial shown to the user to settle a shape is not read: the user is its reader.)
+6. **Hand it over**: the page's path, what the readers said in two or three lines and what you changed for
+   it, and what you did not check.
+
+Step 5 is left out only for a change that touches neither the words nor their order (a restyle, a typo, a
+rebuilt kit), or when the user says so. Say which step you left out, and why. Nothing else is optional: a page
+that skipped a step is not finished, however good it looks.
+
 In this skill's directory:
 
 - `sample.html`: every part, on one page. Open it (or read its source) before writing; copy the markup from it.
 - `kit.css`: the built CSS. Never edit it, never write a second one.
-- `scripts/dockit`: makes a page (`wrap`) and checks one (`check`). Python 3.9+, nothing to install.
+- `scripts/dockit`: makes a page (`wrap`), checks one (`check`), and gives a page's text for the readers
+  (`text`). Python 3.9+, nothing to install.
 
 ## Make a page
 

@@ -1,6 +1,6 @@
 ---
 name: picture-manual
-description: Turn the manual, README or cheat sheet of a tool (a device, a plug-in, a command, an app, a workflow) into a page a tired reader gets at a glance — each thing they want to do as a card with a picture of before and after, one line of how, one line of what comes out; the flow of use in a few pictures first; the specification folded away or left in the reference. The pictures are drawn from the tool's real output, not sketched. Use whenever the user says a manual or doc is hard to follow, too long, "結局なんだっけ", asks for 図解 or 絵で説明 of a tool, 早見表, チートシート, わかりやすいマニュアル, 使い方のページ, or wants the use of something they built shown simply (eli5 for their own tool) — even if they only say the doc "could be clearer". Not for explaining a concept, a PR, a design or a result to a reader, nor for a general topic with no tool behind it (the explainer skill does those), nor for API reference or a spec that must stay complete. The page's look is the doc-kit skill's.
+description: Turn the manual, README or cheat sheet of a tool (a device, a plug-in, a command, an app, a workflow) into a page a tired reader gets at a glance — each thing they want to do as a card with a picture of before and after, one line of how, one line of what comes out; the flow of use in a few pictures first; the specification folded away or left in the reference. The pictures are drawn from the tool's real output, not sketched. Use whenever the user says a manual or doc is hard to follow, too long, "結局なんだっけ", asks for 図解 or 絵で説明 of a tool, 早見表, チートシート, わかりやすいマニュアル, 使い方のページ, or wants the use of something they built shown simply (eli5 for their own tool) — even if they only say the doc "could be clearer". Not for explaining a concept, a PR, a design or a result to a reader, nor for a general topic with no tool behind it (the explainer skill does those), nor for API reference or a spec that must stay complete. The page's look is the doc-kit skill's, and the page is checked, looked at and read by simulated readers (the first-reader skill) before it is handed over, without the user asking.
 ---
 
 # Picture manual
@@ -62,6 +62,10 @@ While the user has the page open, rebuild it the moment the template or the gene
 (pictures in, their styles not yet) is what they will judge.
 
 ## Steps
+
+These are one part of how this plugin makes any page (the doc-kit skill's SKILL.md, "Every page goes the same
+way"). Read that file before the first card: the look, the check, the screenshots and the readers come with
+this skill, and the user does not ask for them.
 
 ### 1. See the doc as its reader does
 
@@ -141,6 +145,19 @@ further down, ask for a taller window (`--height`). A page opened with a `#name`
 come out with an empty band above the target: the shot's doing, not the page's. What a shot cannot tell: whether
 sticky headings stay while scrolling, and whether the links move; say so, or try them in a real browser.
 
+### 8. Have it read
+
+The `first-reader` skill reads the page before the user does; this is not something the user asks for. A
+manual is reference material in its terms: nobody reads it in order, they come with a wish. So cast its
+readers as people who use the tool, and give each a wish as a lookup task: some of the page's own wishes in
+other words than the card's, and two or three the page does not name. A reader who cannot find their wish, or
+finds it under a heading they would not have looked under, is a finding about the cards' words or the page's
+shape: fix that (step 2 or the shape), not the sentence. (Whether a reader knows where they are on a screen is
+seen in step 7's pictures, not in the text.) The text for the readers:
+`python3 ../doc-kit/scripts/dockit text page.html > page.txt`. After fixing, build, check, and have the same
+readers look once more. The trial of step 5 is not read by them: the user is its reader. When this step may be
+left out, and what to say then, is in doc-kit's SKILL.md ("Every page goes the same way").
+
 ## A card, for the trial
 
 The look is not this skill's: it comes from the doc-kit skill beside this one (`../doc-kit/`: `kit.css`, the parts
@@ -161,5 +178,6 @@ named with the tool's prefix: a picture's class called `input` or `btn` takes a 
 
 ## Telling the user
 
-Give the page's path (a `file://` link), what changed in two or three lines, and what you did not check (a theme, a
+Give the page's path (a `file://` link), what changed in two or three lines, what the readers said and what you
+changed for it, and what you did not check (a theme, a
 width, a link). The user reads the page, not the report.

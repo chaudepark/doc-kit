@@ -51,4 +51,5 @@ trademarks), recorded per document in `figures/icons/ICONS.md`.
 
 ## Build-time dependencies
 
-daisyUI (MIT) and Tailwind CSS (MIT) are compiled into `skills/doc-kit/kit.css`; the file keeps their notices.
+daisyUI (MIT) and Tailwind CSS (MIT) are compiled into `skills/doc-kit/kit.css`. The file keeps Tailwind's notice
+without its version number (the versions are in `package.json`), so that the file changes only when the CSS does.

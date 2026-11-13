@@ -4,6 +4,8 @@
   dockit wrap <body.html> -o <page.html> --title <title> [--css <own.css>] [--prose] [--lang en]
       One self-contained file: kit.css inlined, the body inside <main class="doc" id="all">
       (--prose: one column to read, for a body that came from Markdown).
+  dockit text <page.html>
+      The page as the text a reader meets, headings marked with #: what the first-reader skill reads.
   dockit classes <page.html>
       The classes the page uses, one a line (the kit's own build reads its sample this way).
   dockit check <page.html> [...]
@@ -15,6 +17,7 @@ Python 3.9+, standard library only (it runs on a new machine before anything is 
 """
 import argparse
 import html
+import html.parser
 import pathlib
 import re
 import sys
@@ -27,7 +30,7 @@ SELECTOR = re.compile(r"\.(-?[A-Za-z_](?:[\w-]|\\.)*)")
 KANA = re.compile("[\u3040-\u30ff]")
 # the page's language is read from its prose: an English page that quotes Japanese output stays English
 PROSE = re.compile(r"<(pre|code)\b.*?</\1>", re.S)
-OUTSIDE = re.compile(r"""<link\b[^>]*\bhref\s*=|<script\b[^>]*\bsrc\s*=|@import\b|url\(\s*["']?https?:""", re.I)
+OUTSIDE = re.compile(r"""<link\b[^>]*\bhref\s*=|<script\b[^>]*\bsrc\s*=|@import\b|url\(\s*["']?(?:https?:)?//""", re.I)
 
 
 def defined(css):
@@ -60,6 +63,76 @@ def renamed(markup):
     return out
 
 
+class _Text(html.parser.HTMLParser):
+    """A page as plain text in reading order: headings as #, list items as -, a picture as its label."""
+    HEADS = {"h%d" % n: n for n in range(1, 7)}
+    BLOCKS = {"p", "div", "section", "header", "nav", "figure", "figcaption", "details", "summary", "tr", "table",
+              "ul", "ol", "blockquote", "main", "article", "hr"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.out, self.hidden, self.pre = [], 0, 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("style", "script", "svg"):
+            # a picture is read by its label; a picture inside a picture is part of it
+            if tag == "svg" and not self.hidden:
+                self.picture(dict(attrs).get("aria-label"))
+            self.hidden += 1
+        elif self.hidden:
+            return
+        elif tag == "img":
+            self.picture(dict(attrs).get("alt"))
+        elif tag in self.HEADS:
+            self.out.append("\n\n" + "#" * self.HEADS[tag] + " ")
+        elif tag == "li":
+            self.out.append("\n- ")
+        elif tag == "br":
+            self.out.append("\n")
+        elif tag == "pre":
+            self.pre += 1
+            self.out.append("\n\n")
+        elif tag in self.BLOCKS:
+            self.out.append("\n\n")
+
+    def handle_endtag(self, tag):
+        if tag in ("style", "script", "svg"):
+            self.hidden = max(0, self.hidden - 1)
+        elif self.hidden:
+            return
+        elif tag in ("td", "th"):
+            self.out.append(" | ")
+        elif tag == "pre":
+            self.pre = max(0, self.pre - 1)
+            self.out.append("\n\n")
+        elif tag in self.BLOCKS or tag in self.HEADS:
+            self.out.append("\n\n")
+
+    def handle_data(self, data):
+        if self.hidden:
+            return
+        if self.pre:  # code keeps its lines and indentation
+            self.out.append(data)
+            return
+        text = re.sub(r"\s+", " ", data)  # elsewhere a line break in the source is a space, and spaces do not pile up
+        if text.startswith(" ") and self.out and self.out[-1][-1:] in (" ", "\n"):
+            text = text[1:]
+        self.out.append(text)
+
+    def picture(self, label):
+        self.out.append("\n\n[picture: %s]\n\n" % label if label else "\n\n[picture]\n\n")
+
+
+def page_text(markup):
+    parser = _Text()
+    parser.feed(re.sub(r"(?s)^.*?<body[^>]*>", "", markup, count=1))
+    parser.close()
+    lines = [line.rstrip() for line in "".join(parser.out).split("\n")]
+    # outside code a line starts at its first word (one space is left over from a tag that stood there)
+    lines = [line[1:] if line.startswith(" ") and not line.startswith("  ") else line for line in lines]
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip() + "\n"
+
+
 def wrap(args):
     body = pathlib.Path(args.body).read_text(encoding="utf-8")
     own = "<style>%s</style>\n" % pathlib.Path(args.css).read_text(encoding="utf-8").strip() if args.css else ""
@@ -70,6 +143,9 @@ def wrap(args):
     ) % (html.escape(args.lang or ("ja" if KANA.search(PROSE.sub("", body)) else "en")), html.escape(args.title), KIT.read_text(encoding="utf-8").strip(), own,
          " doc-prose" if args.prose else "", body.strip())
     pathlib.Path(args.out).write_text(page, encoding="utf-8")
+    # the steps that follow are not optional, and the one who made the page is the one who forgets them
+    print("wrote %s. Next, without being asked: dockit check; look at it at desktop and phone width; "
+          "have it read (the first-reader skill; its text: dockit text)." % args.out, file=sys.stderr)
     return 0
 
 
@@ -104,6 +180,11 @@ def classes(args):
     return 0
 
 
+def page_as_text(args):
+    sys.stdout.write(page_text(pathlib.Path(args.page).read_text(encoding="utf-8")))
+    return 0
+
+
 def check(args):
     bad = 0
     for path in args.pages:
@@ -131,6 +212,9 @@ def main():
     k = sub.add_parser("classes")
     k.add_argument("page")
     k.set_defaults(run=classes)
+    t = sub.add_parser("text")
+    t.add_argument("page")
+    t.set_defaults(run=page_as_text)
     args = parser.parse_args()
     sys.exit(args.run(args))
 

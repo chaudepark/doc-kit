@@ -1,6 +1,6 @@
 ---
 name: first-reader
-description: Beta readers for any draft, run by simulating how a real reader experiences it, moment by moment. A skim gate, a no-lookahead timed read producing an attention transcript with quit points, a recall test of what a reader remembers the next day, and a trust ledger of the implied author. Use when the user asks for a beta read, beta readers, test readers, human review, reader review, to read something like a human, to be a first reader, whether a piece holds attention or will actually get read, for a quick read of whether a busy skimmer would even open a post, what readers will remember or take away tomorrow, where readers stop reading or bounce, or why a draft still feels off or hollow after anti-slop or humanizer edits. Final gate before publishing; reports where the reading broke; never rewrites.
+description: Beta readers for any draft, run by simulating how a real reader experiences it, moment by moment. A skim gate, a no-lookahead timed read producing an attention transcript with quit points, a recall test of what a reader remembers the next day, and a trust ledger of the implied author. Use when the user asks for a beta read, beta readers, test readers, human review, reader review, to read something like a human, to be a first reader, whether a piece holds attention or will actually get read, for a quick read of whether a busy skimmer would even open a post, what readers will remember or take away tomorrow, where readers stop reading or bounce, or why a draft still feels off or hollow after anti-slop or humanizer edits. Final gate before publishing; reports where the reading broke; never rewrites. Also run without being asked, as the last step before a page or document made by the doc-kit, picture-manual, explainer or explainer-book skill is handed over.
 compatibility: Python 3 stdlib only, offline, no dependencies. feed.py runs a loopback http server on 127.0.0.1 during a read so reader subagents receive the draft one passage at a time; nothing leaves the machine and there is no external network access.
 ---
 
@@ -40,6 +40,12 @@ else in this file is machinery, and machinery stays invisible.
   every passage, the skimmer's verdict, and the lenses. No numbered
   fixes, no suggestions, no revised copy. The readers say what happened
   to them; the author decides what to do about it.
+- **As another skill's last step** (doc-kit, picture-manual, explainer, explainer-book run this before they
+  hand a page over): nobody said "review this", so there is no starting line and no waiting user. The
+  result goes to the skill that wrote the page, which decides what to change; the user hears what the
+  readers said in two or three lines, when the document is handed over. Build this skill's own page of the
+  read beside the run and give its path: do not publish it and do not open it. The readers stay available
+  afterwards as below.
 - **The readers can be consulted.** "ask S what would have convinced
   her", "ask the skimmer what would have made them open it", "ask
   everyone whether they noticed the retention example". Run

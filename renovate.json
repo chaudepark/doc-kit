@@ -3,6 +3,7 @@
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
   "minimumReleaseAge": "7 days",
   "platformAutomerge": false,
+  "gitIgnoredAuthors": ["41898282+github-actions[bot]@users.noreply.github.com"],
   "packageRules": [
     {
       "description": "The tests say whether these broke anything: merged without a person when the checks are green.",
@@ -17,22 +18,28 @@
       "automerge": true
     },
     {
-      "description": "The look. kit.css is built from these and committed, so the test fails until someone rebuilds it.",
+      "description": "The look. The kit workflow rebuilds kit.css on the branch and commits it when the sample page looks the same, pixel for pixel; then the checks are green and this merges by itself. A look that changed fails that workflow and waits for a person.",
       "groupName": "the kit (daisyUI and Tailwind)",
       "matchPackageNames": ["daisyui", "tailwindcss", "@tailwindcss/cli"],
-      "automerge": false,
-      "prBodyNotes": ["On this branch: `pnpm build`, look at `skills/doc-kit/sample.html`, commit the built `kit.css` and `sample.html`, and bump the plugin's version. Repositories that copied `kit.css` copy it again."]
+      "prBodyNotes": ["If the `kit` check failed, the sample page looks different with this update: compare the pictures in its `look` artifact. If the new look is right, run `pnpm build` on this branch, bump the version above the one on main, and commit. Repositories that copied `kit.css` copy it again when it changes."]
     },
     {
-      "description": "A 0.x tool whose page gates the checks do not run (only figure-check calls it).",
+      "description": "Minor and patch updates of the kit merge by themselves once the checks are green; a major waits for a person.",
+      "matchPackageNames": ["daisyui", "tailwindcss", "@tailwindcss/cli"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "description": "The checks run its page gates on the example deck (tests/deck-gates.sh), with two controls that must fail. A major waits for a person.",
       "matchPackageNames": ["@mizchi/vlmkit"],
-      "automerge": false,
-      "prBodyNotes": ["On this branch: run `verify-doc.mjs` on `docs/figure-cheatsheet` and `docs/dataviz`, and the four gate commands in `examples/d2-slides/README.md`."]
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
     },
     {
-      "description": "The sample documents quote these tools' versions and output.",
+      "description": "The sample documents record what was measured with these versions. Updating them means measuring and reading again, which is not mechanical: no pull request until it is asked for on the Dependency Dashboard.",
       "groupName": "the sample documents' tools",
       "matchPackageNames": ["mermaid", "vega", "vega-lite", "ml-matrix"],
+      "dependencyDashboardApproval": true,
       "automerge": false,
       "prBodyNotes": ["On this branch: run `verify-doc.mjs` on `docs/figure-cheatsheet` and `docs/dataviz` (both pages of each), update the versions in their `checks.json` and text, and render the figures again with `--write`."]
     }

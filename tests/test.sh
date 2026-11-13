@@ -40,6 +40,14 @@ printf '<figure class="doc-fig"><svg><g class="edgePath"/></svg></figure>' > "$t
 python3 $dockit wrap "$tmp/body.html" -o "$tmp/fig.html" --title fig --prose
 python3 $dockit check "$tmp/fig.html"
 
+# a page's text for the readers: headings marked, pictures as their labels, no markup, no CSS
+python3 $dockit text skills/doc-kit/sample.html > "$tmp/sample.txt"
+grep -q '^# A page is made of these parts only$' "$tmp/sample.txt" && grep -q '^## Values side by side$' "$tmp/sample.txt" \
+  && grep -q '^\[picture: the input\]$' "$tmp/sample.txt" || { echo "dockit text lost a heading or a picture's label" >&2; exit 1; }
+if grep -q '[<{]' "$tmp/sample.txt"; then echo "dockit text left markup or CSS in the text" >&2; exit 1; fi
+printf '<body><!-- a > b --><h2 title="a > b">One\nheading</h2><table><tr>\n<th>Key</th>\n<td>un<em>believ</em>able</td>\n</tr></table><figure><svg><svg><text>leak</text></svg><text>leak</text></svg><figcaption>Caption</figcaption></figure><img alt="a chart"><pre>a\n  b</pre></body>' > "$tmp/odd.html"
+python3 $dockit text "$tmp/odd.html" > "$tmp/odd.txt"
+printf '## One heading\n\nKey | unbelievable |\n\n[picture]\n\nCaption\n\n[picture: a chart]\n\na\n  b\n' | cmp - "$tmp/odd.txt" || { echo "dockit text: nesting, a table, inline tags, a comment or code came out wrong" >&2; cat "$tmp/odd.txt" >&2; exit 1; }
 # explainer's page builder gives a kit page: a sample document built with it passes the check
 node skills/explainer/scripts/build-html.mjs docs/figure-cheatsheet/README.md >/dev/null
 python3 $dockit check docs/figure-cheatsheet/dist/index.html

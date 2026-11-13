@@ -175,6 +175,9 @@ if (!opt['skip-html']) {
     broken.length
       ? ng(`${page}: ${broken.length} figure(s) broken in the built page (turned into <pre> or escaped markup)`, 'the figure markup went through Markdown; see build-html.mjs placeholders')
       : ok(`${page}: ${built.match(/<figure\b/g)?.length ?? 0} figure(s) intact in the built page`);
+    // the look: only the kit's parts, the current kit.css, nothing loaded from outside (doc-kit's checker)
+    const kit = sh(`python3 ${join(here, '../../doc-kit/scripts/dockit')} check ${html}`);
+    kit.code === 0 ? ok(`${page}: dockit check`) : ng(`${page}: dockit check`, kit.out.trim().split('\n').slice(0, 3).join(' / '));
     const openHtml = html.replace(/\.html$/, '.open.html');
     writeFileSync(openHtml, readFileSync(html, 'utf8').replace(/<details>/g, '<details open>'));
     const allowClosed = `--allow "container-protrusion@details;closed <details> keeps its hidden answer's box — checked expanded in the .open.html copy"`;
