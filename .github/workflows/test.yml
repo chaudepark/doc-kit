@@ -30,7 +30,8 @@ jobs:
 
   # figure-check's regression tests (a real browser and the pinned d2), and vlmkit's page gates on the example deck
   figures:
-    # Playwright 1.56 has no browser for the newest Ubuntu image: stay on the one it supports
+    # a named image, not ubuntu-latest: Playwright has browsers only for the Ubuntu versions it knows, and a new
+    # image arrives before it does (1.56 had none for 26.04). The update of this line shows whether it has caught up.
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
