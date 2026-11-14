@@ -13,13 +13,13 @@
   "devDependencies": {
     "@iconify-json/logos": "1.2.19",
     "@iconify-json/lucide": "1.2.151",
-    "@mizchi/vlmkit": "^0.22.0",
+    "@mizchi/vlmkit": "^0.24.0",
     "@tailwindcss/cli": "4.3.5",
     "daisyui": "5.7.50",
     "marked": "18.0.14",
     "mermaid": "12.0.0",
     "ml-matrix": "6.15.0",
-    "playwright": "1.56.1",
+    "playwright": "1.65.0",
     "tailwindcss": "4.3.5",
     "vega": "6.4.0",
     "vega-lite": "6.4.3"
