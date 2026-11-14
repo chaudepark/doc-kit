@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@iconify-json/logos": "1.2.19",
-    "@iconify-json/lucide": "1.2.151",
+    "@iconify-json/lucide": "1.2.152",
     "@mizchi/vlmkit": "^0.24.0",
     "@tailwindcss/cli": "4.3.5",
     "daisyui": "5.7.50",
