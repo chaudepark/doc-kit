@@ -119,6 +119,9 @@ Move to canvas or lazy drawing only when the number of pictures makes the page h
 
 ### 4. Write the words
 
+In Japanese, the words are written by the `yomiyasu` skill's rules (read `../yomiyasu/SKILL.md`, 「1. 基本原則」,
+before the first line; doc-kit's pipeline says so for every Japanese page, and `dockit check` then reads them).
+
 Each line answers one of the three questions and stops. Prefer the result the reader will see or hear over the
 mechanism ("和音が変わる直前に、つなぎの音が1つ入る", not how the engine picks it). Keep one source for the words: when a
 reference (README, spec) already says it, generate the page from the reference instead of writing a second copy, and
@@ -151,7 +154,9 @@ sticky headings stay while scrolling, and whether the links move; say so, or try
 
 ### 8. Have it read
 
-The `first-reader` skill reads the page before the user does; this is not something the user asks for. A manual
+The `first-reader` skill reads the page before the user does; this is not something the user asks for. Its
+readers read text: the pictures, which are this page's point, they do not see. Whether a picture is understood at
+a glance is tested by nobody but you in step 7, and then by the user. A manual
 is not read in order: its readers come with a wish. So the read is a read by lookup, and its whole procedure is one
 short file, `../first-reader/references/lookup.md`. Follow it; in short:
 
@@ -193,4 +198,4 @@ named with the tool's prefix: a picture's class called `input` or `btn` takes a 
 
 Give the page's path (a `file://` link), what changed in two or three lines, what the readers said and what you
 changed for it, and what you did not check (a theme, a
-width, a link). The user reads the page, not the report.
+width, a link; and that no reader has seen the pictures: the readers read text). The user reads the page, not the report.

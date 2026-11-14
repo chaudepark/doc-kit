@@ -72,9 +72,16 @@ answers. Ask each for a report in this order: for every wish, what they would do
 page's own words quoted; then, without looking back, what they remember; then one question for the
 author. (That question tends to point at the page's largest hole.)
 
-A limit to know: a model reads every line it is given. The tired reader's thirty seconds and "the first
-third of a screen" are asked of it, not enforced; when an answer sat deep in a long screen, ask that
-reader whether a tired person would have got that far, and count it as hesitation if not.
+Limits to know, and to say in the hand-over when they matter:
+
+- A model reads every line it is given. The tired reader's thirty seconds and "the first third of a
+  screen" are asked of it, not enforced; when an answer sat deep in a long screen, ask that reader whether
+  a tired person would have got that far, and count it as hesitation if not.
+- The readers read text. This read tests the words and where things are; whether a picture is understood
+  at a glance, it does not test, and nothing else in the procedure does.
+- The page, the wishes and the verdicts come from the same kind of model, and a read is one sample: run
+  again, a reader can press differently. What the readers found is real (hold it against the page); what
+  they did not find proves nothing. No person has been compared with these readers.
 
 ## Reading the result
 

@@ -40,6 +40,71 @@ printf '<figure class="doc-fig"><svg><g class="edgePath"/></svg></figure>' > "$t
 python3 $dockit wrap "$tmp/body.html" -o "$tmp/fig.html" --title fig --prose
 python3 $dockit check "$tmp/fig.html"
 
+# check reads the page as a browser does. refuses/passes: <what it is> <body> <words the refusal must carry> [own css]
+wrapped() { printf '%s' "$1" > "$tmp/body.html"; python3 $dockit wrap "$tmp/body.html" -o "$tmp/case.html" --title case ${2:+--css "$2"} 2>/dev/null; }
+refuses() {
+  wrapped "$2" "${4:-}"
+  if python3 $dockit check "$tmp/case.html" 2>"$tmp/err"; then echo "check passed $1" >&2; exit 1; fi
+  grep -q -- "$3" "$tmp/err" || { echo "check refused $1, but not for it:" >&2; cat "$tmp/err" >&2; exit 1; }
+}
+passes() { wrapped "$2" "${3:-}"; python3 $dockit check "$tmp/case.html" || { echo "check refused $1" >&2; exit 1; }; }
+# a page is one file: whatever makes the browser fetch is refused, wherever it is written
+refuses "a picture from another host" '<img src="https://example.com/a.png" alt="a">' 'img src'
+refuses "a picture from a file beside the page" '<img src="shots/a.png" alt="a">' 'img src'
+refuses "a srcset" '<img srcset="//example.com/a.png 2x" alt="a">' 'img srcset'
+refuses "a frame" '<iframe srcdoc="x"></iframe>' 'iframe'
+refuses "a video's source" '<video><source src="v.mp4"></video>' 'source src'
+refuses "a video's poster" '<video poster="p.png"></video>' 'video poster'
+refuses "a second srcset candidate" '<img srcset="data:image/png;base64,AAAA 1x, https://example.com/a.png 2x" alt="a">' 'img srcset'
+refuses "an attribute written twice (a browser takes the first)" '<img src="https://example.com/a.png" src="data:," alt="a">' 'img src'
+refuses "a class written twice" '<p class="nope" class="doc-note">x</p>' 'nope'
+refuses "a size where an address belongs" '<img srcset="2x" alt="a">' 'img srcset'
+refuses "a preload's image set" '<link rel="preload" as="image" imagesrcset="https://example.com/a.png 1x">' 'imagesrcset'
+refuses "a cursor from outside" '<svg><rect cursor="url(https://example.com/c.cur), auto"/></svg>' 'url('
+printf '@namespace x "a;b"; p { background: url(https://example.com/a.png) } q::after { content: "" }' > "$tmp/ns.css"
+refuses "a url() after a namespace whose name holds a semicolon" '<p>x</p>' 'url(' "$tmp/ns.css"
+printf 'p { background: url(https://example.com/a.png' > "$tmp/open.css"
+refuses "a url() the CSS never closes" '<p>x</p>' 'url(' "$tmp/open.css"
+passes "a srcset of data with a width and a height" '<img srcset="data:image/png;base64,AAAA 300w 100h, data:image/png;base64,BBBB 2x" alt="a">'
+refuses "a page that sends the reader elsewhere" '<meta http-equiv="refresh" content="0;url=https://example.com/">' 'meta'
+refuses "an object" '<object data="x.svg"></object>' 'object'
+refuses "an embed" '<embed type="image/svg+xml">' 'embed'
+refuses "a base" '<base href="https://example.com/">' 'base href'
+refuses "an SVG image" '<svg><image href="a.png"/></svg>' 'image href'
+refuses "a script from outside, in single quotes" "<script src='x.js'></script>" 'script src'
+refuses "a stylesheet link" '<link rel=stylesheet href=x.css>' 'link href'
+printf 'p { background: url(http:/example.com/a.png) }' > "$tmp/one-slash.css"
+refuses "url() with one slash" '<p>x</p>' 'url(' "$tmp/one-slash.css"
+printf '@import "x.css";' > "$tmp/import.css"
+refuses "an @import" '<p>x</p>' '@import' "$tmp/import.css"
+refuses "url() in a picture attribute" '<svg><rect fill="url(g.svg#a)"/></svg>' 'url('
+passes "what is inside the file" '<img src="data:image/png;base64,AAAA" alt="a"><svg><defs><linearGradient id="g"/></defs><rect fill="url(#g)"/><use href="#g"/></svg><a href="https://example.com/">out</a>'
+printf '/* see url(https://example.com/a.png) */ .mine { background: url("data:image/svg+xml,%%3Csvg fill=%%27url(%%23a)%%27/%%3E") }' > "$tmp/data.css"
+passes "a data: picture in its own CSS, and a URL in a comment" '<p class="mine">x</p>' "$tmp/data.css"
+printf 'p::after { content: "see url(https://example.com/a.png) and @import" } @namespace svg url(http://www.w3.org/2000/svg);' > "$tmp/words.css"
+passes "a URL that is only words: in a string, a namespace, a link, a label" '<a href="https://man.example.org/curl(1)">url(1)</a><p title="write url(img.png) here">x</p>' "$tmp/words.css"
+passes "markup in a comment or in a script's string" '<!-- <link href="x.css"><p class="nope" style="color:red">x</p> --><script>var s = "<img src=x.png class=\"nope\">";</script><p>x</p>'
+# no style= on a page (a figure made elsewhere keeps its own)
+refuses "an inline style" '<p style="color:red">x</p>' 'style='
+passes "a made figure with inline styles, a figure inside it" '<figure class="doc-fig"><figure><svg><g class="x1" style="fill:red"/></svg></figure><svg><g class="x2" style="fill:red"/></svg></figure>'
+# a class is defined by a selector, not by a word in a comment, a string or a URL
+printf '/* .ghost */ .real::after { content: ".quoted" } .other { background: url("data:image/png;base64,AA.url") }' > "$tmp/ghost.css"
+refuses "a class named only in a comment" '<p class="ghost">x</p>' 'ghost' "$tmp/ghost.css"
+refuses "a class named only in a string" '<p class="quoted">x</p>' 'quoted' "$tmp/ghost.css"
+refuses "a class named only in the kit's licence line" '<p class="com">x</p>' 'com'
+passes "a class its own CSS defines" '<p class="real other">x</p>' "$tmp/ghost.css"
+# a card and its screen: single quotes, and a section inside the screen before its heading
+refuses "a card and a screen in different words, single-quoted" "<div class='doc-home'><a class='card' href='#bass'><h3 class='card-title'>move the bass</h3></a></div><section class='doc-view' id='bass'><section><p>x</p></section><h2>Bass motion</h2></section>" 'Bass motion'
+refuses "a card headed with h2" '<div class="doc-home"><a class="card" href="#bass"><h2 class="card-title">move the bass</h2></a></div><section class="doc-view" id="bass"><h2>Bass motion</h2></section>' 'Bass motion'
+refuses "a pair after a heading closed by the wrong tag" '<div class="doc-home"><a class="card" href="#a"><h3 class="card-title">One</h4></a><a class="card" href="#bass"><h3 class="card-title">move the bass</h3></a></div><section class="doc-view" id="a"><h2>One</h2></section><section class="doc-view" id="bass"><h2>Bass motion</h2></section>' 'Bass motion'
+# a made figure keeps its classes and styles, but not a kit part's name, and not a fetch
+refuses "a kit part's name inside a made figure" '<figure class="doc-fig"><svg><g class="btn"/></svg></figure>' 'btn'
+refuses "a fetch inside a made figure" '<figure class="doc-fig"><svg><g style="fill:url(g.svg#a)"/></svg></figure>' 'url('
+# own CSS that would end the style block early is not wrapped
+printf 'p{}</STYLE><p>spill</p>' > "$tmp/spill.css"
+if python3 $dockit wrap "$tmp/body.html" -o "$tmp/spill.html" --title spill --css "$tmp/spill.css" 2>"$tmp/err"; then echo "wrap took CSS that ends its own style block" >&2; exit 1; fi
+grep -q 'style block' "$tmp/err" || { echo "wrap refused the CSS for another reason:" >&2; cat "$tmp/err" >&2; exit 1; }
+
 # a page's text for the readers: headings marked, pictures as their labels, no markup, no CSS
 python3 $dockit text skills/doc-kit/sample.html > "$tmp/sample.txt"
 grep -q '^# A page is made of these parts only$' "$tmp/sample.txt" && grep -q '^## Values side by side$' "$tmp/sample.txt" \
@@ -73,7 +138,12 @@ python3 $dockit check docs/figure-cheatsheet/dist/index.html
 # the page's language comes from its prose: the English page quotes Japanese tool output and stays English
 grep -q '<html lang="en">' docs/figure-cheatsheet/dist/index.html || { echo "the English sample was not built as lang=en" >&2; exit 1; }
 node skills/explainer/scripts/build-html.mjs docs/figure-cheatsheet/README.ja.md >/dev/null
-python3 $dockit check docs/figure-cheatsheet/dist/README.ja.html
+python3 $dockit check docs/figure-cheatsheet/dist/README.ja.html > "$tmp/words.out"
+# check reads a Japanese page's words with the bundled lint, as prose when the page is prose; an English page's it does not
+# (the kind is on dockit's own line and again on the lint's: twice means the lint answered)
+grep -q 'yomiyasu lint as: article' "$tmp/words.out" && [ "$(grep -c article "$tmp/words.out")" -ge 2 ] || { echo "check did not read a Japanese page's words (the lint's own lines are missing)" >&2; exit 1; }
+python3 $dockit check docs/figure-cheatsheet/dist/index.html > "$tmp/words.out"
+if [ -s "$tmp/words.out" ]; then echo "check read an English page's words with the Japanese lint" >&2; exit 1; fi
 grep -q '<html lang="ja">' docs/figure-cheatsheet/dist/README.ja.html || { echo "the Japanese sample was not built as lang=ja" >&2; exit 1; }
 grep -q 'href="../README.ja.md"' docs/figure-cheatsheet/dist/index.html || { echo "the link to the other language does not point beside the source" >&2; exit 1; }
 # dockit reads the language the same way: kana inside <pre> or <code> is not prose
@@ -83,6 +153,17 @@ grep -q '<html lang="en">' "$tmp/lang.html" || { echo "dockit read the language 
 printf '<p>\343\201\213\343\201\252</p>' > "$tmp/body.html"
 python3 $dockit wrap "$tmp/body.html" -o "$tmp/lang.html" --title lang
 grep -q '<html lang="ja">' "$tmp/lang.html" || { echo "dockit did not read kana in prose as ja" >&2; exit 1; }
+# a wide Japanese page is read as a manual, and what the lint names does not fail it
+python3 $dockit check "$tmp/lang.html" > "$tmp/words.out" || { echo "what the lint named failed a page" >&2; exit 1; }
+grep -q 'yomiyasu lint as: manual' "$tmp/words.out" || { echo "check did not read a wide Japanese page as a manual" >&2; exit 1; }
+# where the output cannot show Japanese, the page still passes and is still read
+PYTHONIOENCODING=ascii python3 $dockit check "$tmp/lang.html" > "$tmp/words.out" || { echo "an output that cannot show Japanese failed a page" >&2; exit 1; }
+[ "$(grep -c manual "$tmp/words.out")" -ge 2 ] || { echo "the lint's list was lost where the output cannot show Japanese" >&2; exit 1; }
+# NOTICE.md names the commit the copy says it is; the lint answers
+test -s skills/yomiyasu/FROM || { echo "skills/yomiyasu/FROM is missing or empty" >&2; exit 1; }
+grep -q "$(cat skills/yomiyasu/FROM)" NOTICE.md || { echo "NOTICE.md does not name the commit skills/yomiyasu was taken at" >&2; exit 1; }
+python3 -I skills/yomiyasu/scripts/yomiyasu_lint.py --json < docs/figure-cheatsheet/README.ja.md > "$tmp/lint.json"
+grep -q '"findings"' "$tmp/lint.json" || { echo "the bundled yomiyasu lint did not answer" >&2; exit 1; }
 # the imported skills: their own tests that need no browser and no d2
 node --test tests/d2/*.test.mjs >"$tmp/d2.log" 2>&1 || { tail -20 "$tmp/d2.log" >&2; exit 1; }
 python3 tests/first-reader/test_cjk.py >/dev/null

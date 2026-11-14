@@ -20,16 +20,28 @@ page.
 
 ## Every page goes the same way
 
-The user says what they want and nothing else: no flag, no skill's name, no "and check it". Whichever skill of
-this plugin the request reaches first, the page goes through all of these, in this order, without being asked:
+Anyone can use this without thinking: that is what the kit is for. The user says what they want and nothing
+else: no flag, no skill's name, no "and check it". There is one way through, and it is the best the kit has:
+nothing below is a mode, a level or an option that the user or you pick, and what a page gets does not depend on
+how it was asked for. Where a step depends on the page (its language, its shape), the script or a fixed rule
+decides. If you find yourself choosing between two commands or two depths, the kit is wrong there: say so in the
+hand-over instead of choosing quietly. Whichever skill of this plugin the request reaches first, the page goes
+through all of these, in this order, without being asked:
 
 1. **What goes on it.** How to use a tool (a manual, a cheat sheet, a how-to): read the `picture-manual` skill
    now and follow it. An explanation for a reader (a concept, a change, a result): the `explainer` skill
    (`explainer-book` when it needs chapters). Content that is already written: go on.
+   A page in Japanese, whichever skill leads: read the bundled `yomiyasu` skill (`../yomiyasu/SKILL.md`,
+   「1. 基本原則」) before writing its words, and write them by it. Every Japanese page, every time.
 2. **Figures.** A diagram of boxes and lines or a chart is made and checked as the explainer skill's
    `references/figures.md` says (a D2 diagram: the `d2-diagram` skill) and placed as `doc-fig`. A picture of
    what a tool does is drawn from the tool's real output (picture-manual).
 3. **The look.** The parts below, then `dockit wrap` and `dockit check` ("Make a page").
+   `check` also reads a Japanese page's words with yomiyasu's lint and prints the places it names; it tells
+   the language and the kind of page by itself. Rewrite every place by that skill's rule for it (the meaning,
+   the conditions and the strength of a claim stay as they were; nothing is added), then run `check` once
+   more. A place that is right as it stands (a fixed term, a literal meaning) is named in the hand-over with
+   its reason. The places it names do not fail the page, and their number is not a score.
 4. **Look at it** at desktop and phone width, and read the images.
 5. **Have it read.** The `first-reader` skill reads the page before the user does. A wide page (cards, a
    manual, a cheat sheet) is read by lookup: its readers come with a wish and look for it. The whole procedure
@@ -46,8 +58,26 @@ this plugin the request reaches first, the page goes through all of these, in th
    it, and what you did not check.
 
 Step 5 is left out only for a change that touches neither the words nor their order (a restyle, a typo, a
-rebuilt kit), or when the user says so. Say which step you left out, and why. Nothing else is optional: a page
+rebuilt kit). Say which step you left out, and why. Nothing else is optional: a page
 that skipped a step is not finished, however good it looks.
+
+What holds a page to this, said plainly, because the hand-over must not claim more:
+
+- **A script stops it**: `dockit check`, and only that: the classes, `style=`, the kit's copy, a picture's
+  class, a card's and its screen's headings, the ordinary ways a page fetches from outside. It stops a page where it is
+  run: here that is you, in step 3; in a repository that builds pages, put it in that repository's tests.
+  Inside a `doc-fig` figure it does not ask that classes be defined and lets `style=` be. It reads
+  well-formed markup and plainly written CSS, and does not see what a script does when it runs: a check on
+  a page written in good faith, not a wall.
+- **You are asked, and nothing notices if you do not**: going through the six steps at all, writing Japanese
+  by yomiyasu's rules and rewriting what its lint names (`check` prints the places; it does not stop for
+  them), looking at the screenshots, the read, and the parts' rules `check` does not read (a `<thead>`, a
+  picture's label, a way back from a screen). That is why step 6 says what was not done.
+- **Nobody checks**: whether a picture is understood at a glance (the readers of step 5 read text), whether
+  a tired person reads as far as the simulated one did, whether a person finds the page easy to read. A
+  read without a stumble is not evidence that it is: the page, the wishes and the verdicts come from the same
+  kind of model, and one read is one sample. Do not tell the user a page "reads well"; tell them what was
+  found and fixed.
 
 In this skill's directory:
 
@@ -63,7 +93,8 @@ In this skill's directory:
    One self-contained file: it opens from `file://`, offline, on a phone. The page's language is read from the
    body's prose (kana outside `<pre>` and `<code>`: `ja`, otherwise `en`) unless `--lang` says it; write the page in the reader's language.
 3. `python3 scripts/dockit check page.html`. Fix what it names; do not ship a page that fails.
-   (Inside a `doc-fig` figure the classes are the drawing tool's and are not asked to be defined.)
+   (Inside a `doc-fig` figure the classes need no definition and `style=` is let be: they are the drawing
+   tool's. A kit part's name on a picture and a fetch are refused there too.)
 4. Look at it at desktop and phone width (`../picture-manual/scripts/shots.sh page.html <out dir>`).
 
 A page written as Markdown: the explainer skill's `build-html.mjs` (same plugin) turns it into a kit page; do
@@ -108,8 +139,11 @@ Only what belongs to the tool it documents, in its own CSS (`--css`):
 - every such class named with the tool's prefix (`cont-bass`, not `bass`): a class called `input`, `btn`, `table`
   or `card` takes the kit part's styles, and `check` refuses it inside a picture.
 
-Not on a page: `style="…"` for size, colour or font; a Tailwind utility the sample does not use (the built CSS does
-not contain it, so it does nothing); a font, script or stylesheet from outside.
+Not on a page, and `check` refuses each: `style="…"` (give the thing a class in the page's own CSS; a `doc-fig`
+figure keeps its tool's); a Tailwind utility the sample does not use (the built CSS does not contain it, so it
+does nothing); what the browser would have to fetch: a font, a script, a stylesheet, a frame, a picture in a
+file beside the page (put a picture in as `data:`, or draw it as SVG). A page needs no script; `check` reads
+markup and CSS, and what a script would fetch when it runs it does not see.
 
 ## When a part is missing
 

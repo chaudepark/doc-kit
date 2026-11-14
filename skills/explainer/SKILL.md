@@ -19,7 +19,7 @@ ELI5 との違いは 2 つ。
 
 このスキルは、プラグインの「ページの作り方」（`../doc-kit/SKILL.md` の "Every page goes the same way"）の 1 段。資料を作る前に、その節を読む。
 資料を作るときは、図の検査（手順 6）、検証（手順 7）、読ませる（手順 8）、HTML とその目視（手順 9）を、頼まれなくても毎回行う。使う人は、フラグもスキルの名前も言わない。
-省いてよい場合と、省いたときに伝えることは、doc-kit のその節に書いてある（言葉も順序も変えない直しか、使う人が省くと言ったとき。手順 8 だけ）。
+省いてよい場合と、省いたときに伝えることは、doc-kit のその節に書いてある（言葉も順序も変えない直しのとき。手順 8 だけ）。
 
 ## 準備（初回だけ）
 
@@ -195,7 +195,7 @@ node <skill>/scripts/verify-doc.mjs <doc-dir> --write  # 図の SVG を描き直
 1. `checks.json` の各コマンドの出力に、期待する行が順に出るか
 2. 図：`figure-check.mjs`（重なり・はみ出し・矢印・事実シート）と、SVG がソースより新しいか
 3. 本文：`output` / `source` の引用が実物と一致するか。画像が存在するか
-4. HTML：`vlmkit check integrity`（`<details>` を開いた版で厳格に）と `check a11y contrast`
+4. HTML：`dockit check`（kit の部品だけか、外から何も取ってこないか。日本語のページは、yomiyasu の lint が本文を読んで直す所を挙げる）と、`vlmkit check integrity`（`<details>` を開いた版で厳格に）と `check a11y contrast`
 
 落ちた行は「何が・どこで・どう直すか」を 1 行で出す。
 直して再実行し、`verdict: VERIFIED` になるまで繰り返す。

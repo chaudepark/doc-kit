@@ -9,7 +9,7 @@
     {
       "name": "doc-kit",
       "source": "./",
-      "description": "Seven skills: doc-kit (the look: one prebuilt CSS, a fixed set of parts, a checker), picture-manual (a tool's manual as wishes and before/after pictures), explainer and explainer-book (explanations and books for one reader, verified by tools), first-reader (simulated beta readers, Apache-2.0), d2-diagram and d2-slides.",
+      "description": "Eight skills: doc-kit (the look: one prebuilt CSS, a fixed set of parts, a checker), picture-manual (a tool's manual as wishes and before/after pictures), explainer and explainer-book (explanations and books for one reader, verified by tools), first-reader (simulated beta readers, Apache-2.0), d2-diagram and d2-slides, yomiyasu (rewriting AI-written Japanese, and its lint; a copy of nanaism/yomiyasu, MIT).",
       "category": "documentation"
     }
   ]

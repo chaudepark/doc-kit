@@ -9,13 +9,13 @@
 // 3. prose    各ページ (既定は README.md) の <!-- output: name --> 直後のコードブロックが、その check の実出力にあるか
 //             <!-- source: path --> 直後のコードブロックが、そのファイルの一部と一致するか
 //             画像リンクとページ間リンク (*.md) の参照先が存在するか
-// 3b. 日本語  yomiyasu（入っていれば）の yomiyasu_lint.py で本文を点検し、見直す候補を △ で出す（落とさない）
-// 4. page     HTML に組み、各ページに vlmkit check integrity / check a11y contrast を通す (--skip-html で省略)
+// 4. page     HTML に組み、各ページを dockit check（部品と外からの読み込み。日本語のページは yomiyasu の lint が本文を読み、
+//             直す所を挙げる）と vlmkit check integrity / check a11y contrast に通す (--skip-html で省略)
 //
 // どれか 1 つでも落ちれば exit 1。落ちた項目ごとに「何が・どこで・どう直すか」を 1 行で出す。
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { homedir, tmpdir } from 'node:os';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -122,42 +122,6 @@ for (const page of pages) {
     if (!existsSync(join(docDir, m[1]))) ng(`${page}: link to ${m[1]}, which does not exist`);
 }
 
-// ---- 3b. 日本語の読みやすさ（yomiyasu）------------------------------------------
-// yomiyasu のリンターは、AI の文章に出やすい型（太字・箇条書きの多さ、文末のコロン、比喩の動詞など）を数える。
-// 人の文章でも点数が出るので、落とさずに △ で知らせるだけにする。場所は $YOMIYASU_LINT か、スキルの置き場所から探す
-function findYomiyasu() {
-  if (process.env.YOMIYASU_LINT) return existsSync(process.env.YOMIYASU_LINT) ? process.env.YOMIYASU_LINT : null;
-  const rel = 'yomiyasu/scripts/yomiyasu_lint.py';
-  const bases = [join(process.cwd(), '.claude/skills'), join(process.cwd(), '.agents/skills'), join(homedir(), '.claude/skills'), join(homedir(), '.agents/skills')];
-  for (const b of bases) if (existsSync(join(b, rel))) return join(b, rel);
-  // プラグインとして入れた場合：~/.claude/plugins の下を浅く探す
-  const walk = (d, depth) => {
-    if (depth < 0 || !existsSync(d)) return null;
-    for (const e of readdirSync(d, { withFileTypes: true })) {
-      if (!e.isDirectory()) continue;
-      const p = join(d, e.name);
-      if (existsSync(join(p, rel))) return join(p, rel);
-      const found = walk(p, depth - 1);
-      if (found) return found;
-    }
-    return null;
-  };
-  return walk(join(homedir(), '.claude/plugins'), 5);
-}
-const yomiyasu = findYomiyasu();
-console.log('japanese (yomiyasu)');
-if (!yomiyasu) console.log('  - yomiyasu not installed; skipped (https://github.com/nanaism/yomiyasu)');
-else for (const page of pages) {
-  const r = spawnSync('python3', ['-I', yomiyasu, '--json', join(docDir, page)], { encoding: 'utf8' });
-  let d;
-  try { d = JSON.parse(r.stdout); } catch { console.log(`  - ${page}: yomiyasu_lint failed: ${(r.stderr || '').trim().split('\n').at(-1)}`); continue; }
-  const m = d.metrics ?? {};
-  const head = `${page}: score ${d.score}（太字 1,000 字あたり ${m.bold_per_1000}、箇条書き ${Math.round((m.list_ratio ?? 0) * 100)}%）`;
-  if (!d.findings?.length) { ok(head); continue; }
-  console.log(`  △ ${head}、見直す候補 ${d.findings.length} 件（references/writing.md の「読みやすい日本語」）`);
-  for (const f of d.findings.slice(0, 5)) console.log(`      L${f.line} ${f.rule}: ${(f.snippet ?? '').slice(0, 50)}`);
-}
-
 // ---- 4. page -----------------------------------------------------------------
 if (!opt['skip-html']) {
   console.log('page (vlmkit)');
@@ -176,8 +140,11 @@ if (!opt['skip-html']) {
       ? ng(`${page}: ${broken.length} figure(s) broken in the built page (turned into <pre> or escaped markup)`, 'the figure markup went through Markdown; see build-html.mjs placeholders')
       : ok(`${page}: ${built.match(/<figure\b/g)?.length ?? 0} figure(s) intact in the built page`);
     // the look: only the kit's parts, the current kit.css, nothing loaded from outside (doc-kit's checker)
-    const kit = sh(`python3 ${join(here, '../../doc-kit/scripts/dockit')} check ${html}`);
-    kit.code === 0 ? ok(`${page}: dockit check`) : ng(`${page}: dockit check`, kit.out.trim().split('\n').slice(0, 3).join(' / '));
+    const kit = spawnSync('python3', [join(here, '../../doc-kit/scripts/dockit'), 'check', html], { encoding: 'utf8', maxBuffer: 64 << 20 });
+    const said = (x) => (x ?? '').trim();
+    kit.status === 0 ? ok(`${page}: dockit check`) : ng(`${page}: dockit check`, said(kit.stderr).split('\n').slice(0, 3).join(' / '));
+    // 日本語のページの本文について lint が挙げた所（標準出力）と、読めなかったときの知らせ（成功時の標準エラー）
+    for (const text of [said(kit.stdout), kit.status === 0 ? said(kit.stderr) : '']) if (text) console.log(text.replace(/^/gm, '    '));
     const openHtml = html.replace(/\.html$/, '.open.html');
     writeFileSync(openHtml, readFileSync(html, 'utf8').replace(/<details>/g, '<details open>'));
     const allowClosed = `--allow "container-protrusion@details;closed <details> keeps its hidden answer's box — checked expanded in the .open.html copy"`;

@@ -12,9 +12,13 @@
   dockit classes <page.html>
       The classes the page uses, one a line (the kit's own build reads its sample this way).
   dockit check <page.html> [...]
-      Fails when a page uses a class no style defines (outside a doc-fig figure), carries an old kit.css,
-      names a picture's class like a kit part, heads a screen in other words than the card that opens it,
-      or loads something from outside.
+      Fails when a page uses a class no style defines or a style= attribute (outside a doc-fig figure),
+      carries an old kit.css, names a picture's class like a kit part, heads a screen in other words than
+      the card that opens it, or would fetch what is not in the file (a src, a srcset, a frame, a link, an
+      @import, a url(), a refresh). It reads well-formed markup and plainly written CSS, not what a script
+      does when it runs: a check on a page written in good faith, not a wall.
+      A page in Japanese also has its words read by the yomiyasu skill's lint (in the same plugin): the places
+      to rewrite are printed, and do not fail the page.
 
 Python 3.9+, standard library only (it runs on a new machine before anything is installed).
 """
@@ -23,21 +27,27 @@ import html
 import html.parser
 import pathlib
 import re
+import subprocess
 import sys
 
 KIT = pathlib.Path(__file__).resolve().parent.parent / "kit.css"
-STYLE = re.compile(r"<style([^>]*)>(.*?)</style>", re.S)
-# shortcut: attributes are read by regex, not an HTML parser; a class= inside a script or a comment is read too
+LINT = KIT.parent.parent / "yomiyasu" / "scripts" / "yomiyasu_lint.py"  # the plugin's copy of the yomiyasu skill
+# one tag's attributes, for lookup; check reads a whole page with _Page
 CLASS = re.compile(r"""\bclass\s*=\s*(?:"([^"]*)"|'([^']*)')""")
 SELECTOR = re.compile(r"\.(-?[A-Za-z_](?:[\w-]|\\.)*)")
 KANA = re.compile("[\u3040-\u30ff]")
 # the page's language is read from its prose: an English page that quotes Japanese output stays English
 PROSE = re.compile(r"<(pre|code)\b.*?</\1>", re.S)
-OUTSIDE = re.compile(r"""<link\b[^>]*\bhref\s*=|<script\b[^>]*\bsrc\s*=|@import\b|url\(\s*["']?(?:https?:)?//""", re.I)
+QUOTED = r""""(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'"""
+URL = re.compile(r"""(?is)url\(\s*(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|([^)]*))\s*(?:\)|\Z)""")
+# what in a CSS text is neither a selector nor a rule to read: a comment, an @namespace (its url() is a name,
+# nothing is fetched), a url(...) (kept apart, as group 1), a string
+CSS_SKIP = re.compile(r"(?is)/\*.*?\*/|@namespace\b(?:%s|[^;])*;|(url\(\s*(?:%s|[^)]*)\s*(?:\)|\Z))|%s" % (QUOTED, QUOTED, QUOTED))
+SPACE = re.compile(r"[ \t\n\f\r]+")  # what separates class names for a browser (not every Unicode space)
 
 
 def defined(css):
-    return {re.sub(r"\\(.)", r"\1", name) for name in SELECTOR.findall(css)}
+    return {re.sub(r"\\(.)", r"\1", name) for name in SELECTOR.findall(CSS_SKIP.sub(" ", css))}
 
 
 def used(markup):
@@ -48,22 +58,141 @@ def text(markup):
     return " ".join(html.unescape(re.sub(r"<[^>]+>", " ", markup)).split())
 
 
-def renamed(markup):
-    """(card heading, screen heading) for each card whose screen (a doc-view) is headed in other words:
-    the reader presses one name and lands on another, and no longer knows where they are."""
-    screens = {}
-    for attrs, rest in re.findall(r"<section\b([^>]*\bdoc-view\b[^>]*)>(.*?)(?=<section\b|\Z)", markup, re.S):
-        name = re.search(r'\bid\s*=\s*"([^"]+)"', attrs)
-        head = re.search(r"<h2\b[^>]*>(.*?)</h2>", rest, re.S)
-        if name and head:
-            screens[name.group(1)] = text(head.group(1))
-    out = []
-    for attrs, inner in re.findall(r"<a\b([^>]*)>(.*?)</a>", markup, re.S):
-        to = re.search(r'\bhref\s*=\s*"#([^"]+)"', attrs)
-        title = re.search(r'class="[^"]*\bcard-title\b[^"]*"[^>]*>(.*?)</h\d>', inner, re.S)
-        if to and title and to.group(1) in screens and text(title.group(1)) != screens[to.group(1)]:
-            out.append((text(title.group(1)), screens[to.group(1)]))
-    return out
+def inside(address):
+    """Nothing to fetch: the address is empty, a place in this file (#id), or the data itself (data:)."""
+    address = address.strip().lower()
+    return not address or address.startswith(("#", "data:"))
+
+
+def fetched(css):
+    """What a CSS text would make the browser fetch: an @import, a url() that is not inside the file.
+    Written plainly: an escaped keyword (@\\69mport) or an image-set() of bare strings is not seen."""
+    urls = []
+    rest = CSS_SKIP.sub(lambda m: urls.append(m.group(1)) or " ", css)
+    found = ["@import"] if re.search(r"(?i)@import\b", rest) else []
+    for url in filter(None, urls):
+        m = URL.match(url)
+        address = m.group(1) or m.group(2) or m.group(3) or ""
+        if not inside(address):
+            found.append("url(%s)" % address.strip()[:40])
+    return found
+
+
+def srcset_inside(value):
+    """Every candidate of a srcset is inside the file. An address has no space in it; what follows one (2x, 300w)
+    is its size, not an address."""
+    after_address = False
+    for word in value.split():
+        size = after_address and re.fullmatch(r"[\d.]+[wxh],?", word)
+        if not size and not inside(word.strip(",")):
+            return False
+        after_address = bool(word.strip(",")) and not word.endswith(",")
+    return True
+
+
+class _Page(html.parser.HTMLParser):
+    """What check asks about a page, read with an HTML parser: in well-formed markup a comment, a script's text,
+    the kind of quotes or a part inside a part does not change the answer. It checks a page written in good
+    faith; it is not a wall against one written to get past it (and Python's parser is not a browser's)."""
+    FETCH = ("src", "poster", "background")
+    FRAMES = ("iframe", "frame", "object", "embed")  # what they show is not in this file's text
+    PAINT = ("style", "fill", "stroke", "filter", "mask", "clip-path", "marker-start", "marker-mid", "marker-end", "cursor")
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.styles = []  # [is it the kit's, its text]
+        self.all, self.used, self.in_pictures = set(), set(), set()
+        self.styled, self.loads = [], []
+        self.cards, self.screens = [], {}  # (the screen a card opens, the card's heading); screen: its heading
+        self.made = self.svg = 0  # how deep inside a figure made elsewhere (doc-fig), inside an <svg>
+        self.sections, self.link, self.grab, self.in_style = [], None, None, False
+        self.lang = self.prose = None  # what <html lang> says; whether <main> is one column of prose
+
+    def at(self, what):
+        return "%s (line %d)" % (what, self.getpos()[0])
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(reversed(attrs))  # an attribute written twice: the first one counts, as in a browser
+        classes = [name for name in SPACE.split(attrs.get("class") or "") if name]
+        if self.grab and tag == self.grab[0]:
+            self.grab[1] += 1
+        self.all.update(classes)
+        if not self.made:
+            # a figure made elsewhere (Mermaid, D2, a chart) carries its tool's classes and styles: those two are
+            # not asked of it (a kit part's name on a picture and a fetch are refused there as anywhere)
+            self.used.update(classes)
+            if "style" in attrs:
+                self.styled.append(self.at("<%s style=>" % tag))
+        self.made += tag == "figure" and bool(self.made or "doc-fig" in classes)
+        self.svg += tag == "svg"
+        if self.svg:
+            self.in_pictures.update(classes)
+        if tag == "html" and self.lang is None:
+            self.lang = attrs.get("lang") or ""
+        elif tag == "main" and self.prose is None:
+            self.prose = "doc-prose" in classes
+        for name, value in attrs.items():
+            value = value or ""
+            fetches = (name in self.FETCH or (name == "href" and tag in ("link", "base"))
+                       or (name in ("href", "xlink:href") and self.svg and tag != "a"))
+            if (fetches and not inside(value)) or (name in ("srcset", "imagesrcset") and not srcset_inside(value)):
+                self.loads.append(self.at("<%s %s>" % (tag, name)))
+            elif name in self.PAINT and "url(" in value.lower():
+                self.loads += [self.at("%s in <%s %s>" % (found, tag, name)) for found in fetched(value)]
+        if tag in self.FRAMES:
+            self.loads.append(self.at("<%s>" % tag))
+        elif tag == "meta" and (attrs.get("http-equiv") or "").lower() == "refresh":
+            self.loads.append(self.at("<meta http-equiv=refresh>"))
+        if tag == "style":
+            self.styles.append(["data-doc-kit" in attrs, ""])
+            self.in_style = True
+        elif tag == "section":
+            self.sections.append(attrs.get("id") if "doc-view" in classes else None)
+        elif tag == "a":
+            to = attrs.get("href") or ""
+            self.link = to[1:] if to.startswith("#") else None
+        elif self.link and "card-title" in classes and not self.grab:
+            self.grab = [tag, 1, [], None, self.link]
+        elif tag == "h2" and not self.grab:
+            screen = next((name for name in reversed(self.sections) if name), None)
+            if screen and screen not in self.screens:
+                self.grab = [tag, 1, [], self.screens, screen]
+
+    def handle_endtag(self, tag):
+        if self.grab:
+            closer, _, said, screens, name = self.grab
+            self.grab[1] -= tag == closer
+            # a heading closed by the wrong tag ends where its card or its screen does, not at the page's end
+            if not self.grab[1] or tag == ("a" if screens is None else "section"):
+                words = " ".join("".join(said).split())
+                if screens is None:
+                    self.cards.append((name, words))
+                else:
+                    screens[name] = words
+                self.grab = None
+        if tag == "style":
+            self.in_style = False
+        elif tag == "figure":
+            self.made = max(0, self.made - 1)
+        elif tag == "svg":
+            self.svg = max(0, self.svg - 1)
+        elif tag == "section" and self.sections:
+            self.sections.pop()
+        elif tag == "a":
+            self.link = None
+
+    def handle_data(self, data):
+        if self.in_style:
+            self.styles[-1][1] += data
+        elif self.grab:
+            self.grab[2].append(data)
+
+
+def read(page):
+    seen = _Page()
+    seen.feed(page)
+    seen.close()
+    return seen
 
 
 class _Text(html.parser.HTMLParser):
@@ -317,11 +446,14 @@ def lookup(args):
 def wrap(args):
     body = pathlib.Path(args.body).read_text(encoding="utf-8")
     own = "<style>%s</style>\n" % pathlib.Path(args.css).read_text(encoding="utf-8").strip() if args.css else ""
+    if "</style" in own[7:-9].lower():
+        sys.exit("dockit wrap: %s holds </style, which would end the page's style block there" % args.css)
+    lang = args.lang or ("ja" if KANA.search(PROSE.sub("", body)) else "en")
     page = (
         '<!doctype html>\n<html lang="%s"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1"><title>%s</title>\n'
         "<style data-doc-kit>%s</style>\n%s</head>\n<body>\n<main class=\"doc%s\" id=\"all\">\n%s\n</main>\n</body></html>\n"
-    ) % (html.escape(args.lang or ("ja" if KANA.search(PROSE.sub("", body)) else "en")), html.escape(args.title), KIT.read_text(encoding="utf-8").strip(), own,
+    ) % (html.escape(lang), html.escape(args.title), KIT.read_text(encoding="utf-8").strip(), own,
          " doc-prose" if args.prose else "", body.strip())
     pathlib.Path(args.out).write_text(page, encoding="utf-8")
     # the steps that follow are not optional, and the one who made the page is the one who forgets them
@@ -330,34 +462,38 @@ def wrap(args):
     return 0
 
 
-def problems(page):
-    styles = STYLE.findall(page)
-    kit = [css for attrs, css in styles if "data-doc-kit" in attrs]
+def problems(seen):
+    kit = [css for is_kit, css in seen.styles if is_kit]
     if not kit:
         return ["no <style data-doc-kit>: not a doc-kit page (make it with dockit wrap)"]
     out = []
     if kit[0].strip() != KIT.read_text(encoding="utf-8").strip():
         out.append("its kit.css is not the current one: wrap it again (or copy kit.css again)")
     kit_names = defined(kit[0])
-    names = kit_names | defined(" ".join(css for attrs, css in styles if "data-doc-kit" not in attrs))
-    markup = STYLE.sub("", page)
-    # a figure made elsewhere (doc-fig: Mermaid, D2, a chart) carries its tool's marker classes: not asked of them
-    unknown = sorted(used(re.sub(r'<figure class="doc-fig".*?</figure>', "", markup, flags=re.S)) - names)
+    unknown = sorted(seen.used - kit_names - defined(" ".join(css for is_kit, css in seen.styles if not is_kit)))
     if unknown:
         out.append("classes no style defines (use a part from sample.html): " + " ".join(unknown))
-    in_pictures = used(" ".join(re.findall(r"<svg\b.*?</svg>", markup, re.S)))
-    clash = sorted(n for n in in_pictures & kit_names if not n.startswith("doc-"))
+    clash = sorted(n for n in seen.in_pictures & kit_names if not n.startswith("doc-"))
     if clash:
         out.append("a picture's class is also a kit part (rename it with the tool's prefix): " + " ".join(clash))
-    for card, screen in renamed(markup):
-        out.append("a card and the screen it opens have different headings (use the card's words): '%s' -> '%s'" % (card, screen))
-    if OUTSIDE.search(page):
-        out.append("loads a stylesheet, script or file from outside: a page is one file")
+    # the reader presses one name and lands on another, and no longer knows where they are
+    for name, card in seen.cards:
+        if name in seen.screens and card != seen.screens[name]:
+            out.append("a card and the screen it opens have different headings (use the card's words): '%s' -> '%s'" % (card, seen.screens[name]))
+
+    def some(found):
+        return ", ".join(found[:5]) + (" and %d more" % (len(found) - 5) if len(found) > 5 else "")
+
+    if seen.styled:
+        out.append("style= on a page (use a part, or a class in the page's own CSS): " + some(seen.styled))
+    loads = seen.loads + [found + " in a <style>" for _, css in seen.styles for found in fetched(css)]
+    if loads:
+        out.append("would fetch from outside the file (a page is one file: put it in as data:, or draw it): " + some(loads))
     return out
 
 
 def classes(args):
-    print("\n".join(sorted(used(STYLE.sub("", pathlib.Path(args.page).read_text(encoding="utf-8"))))))
+    print("\n".join(sorted(read(pathlib.Path(args.page).read_text(encoding="utf-8")).all)))
     return 0
 
 
@@ -366,17 +502,48 @@ def page_as_text(args):
     return 0
 
 
+def words(path, page, seen):
+    """A Japanese page's words, read by the bundled yomiyasu lint. Nobody picks whether, or as what kind of text:
+    the page's language and shape say. It names places to rewrite; it never changes whether the page passes."""
+    prose = text(re.sub(r"(?s)<!--.*?-->|<(style|script|pre|code)\b.*?</\1>", " ", page))
+    if not (seen.lang.lower().startswith("ja") if seen.lang else KANA.search(prose)):
+        return
+    kind = "article" if seen.prose else "manual"
+    why = None
+    if not LINT.exists():
+        why = "the lint is not beside this dockit (run the plugin's own dockit)"
+    else:
+        try:
+            ran = subprocess.run([sys.executable, "-I", str(LINT), "--doc-type", kind], input=page_text(page),
+                                 capture_output=True, encoding="utf-8", timeout=300)
+            if ran.returncode or not ran.stdout.strip():
+                why = "it stopped with %d: %s" % (ran.returncode, " ".join((ran.stderr or "").split()[-12:]))
+        except subprocess.TimeoutExpired:
+            why = "it did not finish in five minutes"
+    if why:
+        print("%s: Japanese, and its words were NOT read by the yomiyasu lint: %s" % (path, why), file=sys.stderr)
+        return
+    print("%s: its Japanese, read by the yomiyasu lint as: %s (the line numbers are those of dockit text).\n"
+          "Rewrite every place it names by the yomiyasu skill's rule for it, keeping the meaning; a place left as it is\n"
+          "is named in the hand-over with its reason.\n%s" % (path, kind, ran.stdout.strip()))
+
+
 def check(args):
     bad = 0
     for path in args.pages:
-        found = problems(pathlib.Path(path).read_text(encoding="utf-8"))
+        page = pathlib.Path(path).read_text(encoding="utf-8")
+        seen = read(page)
+        found = problems(seen)
         bad += bool(found)
         for line in found:
             print("%s: %s" % (path, line), file=sys.stderr)
+        words(path, page, seen)
     return 1 if bad else 0
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):  # a terminal that cannot show a character must not stop a check
+        stream.reconfigure(errors="replace")
     parser = argparse.ArgumentParser(prog="dockit", description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
     w = sub.add_parser("wrap")

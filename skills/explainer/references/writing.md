@@ -77,8 +77,8 @@ const s = new Solver();
 
 直すときも、主張・言い切りの強さ・文の働き（説明か、依頼か、決まりか）は変えない。元にない情報を足さない。
 
-[yomiyasu](https://github.com/nanaism/yomiyasu) が入っていれば、`verify-doc.mjs` が `yomiyasu_lint.py` で本文を点検し、見直す候補を △ で出す（落としはしない。人の文章でも点数が出るため）。
-この節の型は、yomiyasu（MIT）の `references/slop-catalog.md` と `SKILL.md` を参考に、explainer 向けに短く書き直した。文を直す作業そのものを頼まれたときは、yomiyasu が入っていればそれを使う（このプラグインには入っていない）。
+`verify-doc.mjs` は、組んだページを `dockit check` に通す。日本語のページなら、`dockit check` が同じプラグインの [yomiyasu](https://github.com/nanaism/yomiyasu)（`../yomiyasu/`）の lint で本文を読み、直す所を挙げる（ページは落とさない。候補の数は点数ではなく、人の文章でも出る）。行番号は `dockit text` のもので、直すのは元の Markdown。
+この節の型は、yomiyasu（MIT）の `references/slop-catalog.md` と `SKILL.md` を参考に、explainer 向けに短く書き直した。日本語の資料は、書く前に yomiyasu の `SKILL.md`（「1. 基本原則」）を読み、その決まりで書く（doc-kit の道筋がどの日本語のページにも求めている）。この節は、そのうち explainer でよく当たる型の抜き書き。
 
 ## 冗長さの点検
 

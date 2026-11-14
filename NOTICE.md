@@ -44,6 +44,15 @@ explainer project. Its `LICENSE` and `NOTICE` are in that directory. Changed her
 where the skill and its tests are in doc-kit, and `README.ja.md` is a Japanese translation of it (recorded in
 that `NOTICE` too).
 
+## nanaism/yomiyasu (MIT)
+
+`skills/yomiyasu/` is the skill directory of https://github.com/nanaism/yomiyasu, taken through the fork
+https://github.com/chaudepark/yomiyasu at commit db78b9bc5e868549b517a037df7a4d1c93edac23 (v3.1.0, 2026-11-12)
+with `scripts/take-yomiyasu.sh`. Its `LICENSE` and `UNICODE-LICENSE.txt` are in that directory. Nothing in it is
+changed here (the one added file, `FROM`, holds the commit's id): a change is made in the fork and taken again.
+That project's own repository is where to get the skill by itself, and has its documentation, its tests and its
+measurements. As it notes, it has nothing to do with the service whose registered trademark is ヨミヤス (YOMIYAS).
+
 ## Icons in sample documents
 
 Icons placed in `docs/` follow their sets' licenses (Lucide: ISC; logos: CC0, the logos are their owners'
