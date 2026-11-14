@@ -53,19 +53,21 @@ through all of these, in this order, without being asked:
    `python3 scripts/dockit pictures page.html -o <run dir>/pictures` the pictures. A prose
    page gets first-reader's full read; its text is the source Markdown when there is one, otherwise
    `python3 scripts/dockit text page.html > page.txt`. The readers are fresh subagents (you have seen the
-   page, they have not). Fix what they stumbled on, run the check again, and have the same readers (new
-   subagents, the same personas) read once more; what still stumbles after that goes in the hand-over, not
+   page, they have not). Fix what they stumbled on, run the check again, and have what changed read once
+   more (new subagents, the same persona; the marks say whether that is the words, the pictures or both); what still stumbles after that goes in the hand-over, not
    into a third round. The page first-reader builds of the read stays beside the run: do not publish it or open it,
    give its path. (A book: at least its first chapter and the chapters with exercises, as explainer-book says.
    A trial shown to the user to settle a shape is not read: the user is its reader.)
 6. **Hand it over**: the page's path, what the readers said in two or three lines and what you changed for
    it, and what you did not check.
 
-Step 5 is left out only when the page says and shows what it did at its last read. For a page read by lookup,
-`dockit lookup` prints a mark of its words and pictures (`mark 3f2a…`), the readers file keeps the mark of each
-read, and the same mark means neither changed (a restyle, a rebuilt kit). For a prose page from Markdown: its
-source file is the same as at the commit of its last read. Anything else is read, however small the change
-looks: a typo, a comma the lint named, a redrawn picture. Say which step you left out, and why. Nothing else is optional: a page
+Step 5 is left out only for what the page says and shows as the readers file last recorded it. For a page read
+by lookup, `dockit lookup` prints two marks (`mark words 3f2a… pictures 9c1d…`) and the readers file keeps them
+for each read, and for the fix after the second round, which stands without a read (lookup.md): the words are
+read again when the first has changed, the pictures when the second has (a picture, the line it is held to, or
+how the page's own CSS paints them), and neither for a rebuilt kit. For a prose page from Markdown: its source file
+is the same as at the commit of its last read. Anything else is read, however small the change looks: a typo, a
+comma the lint named, a redrawn picture. Say which step you left out, and why. Nothing else is optional: a page
 that skipped a step is not finished, however good it looks.
 
 What holds a page to this, said plainly, because the hand-over must not claim more:
@@ -133,7 +135,7 @@ page's words with the second, and fails a Japanese page it could not read).
 | Good to know / take care | `alert alert-soft alert-info` / `alert alert-soft alert-warning` (with `role="alert"`) |
 | Keys | `kbd kbd-sm` |
 | Labels | `badge` with `badge-neutral`, `badge-ghost`, `badge-outline` or `badge-soft badge-primary` |
-| A screen's abstract | after the screen's `<h2>` and before its detail (the first `<h3>`, table, folded part or `doc-vals`): a `doc-how` line (where, and what to set), with the before → after and one line of what comes out; a screen that only lists things opens with a `doc-lede` sentence instead. It answers the screen's wish by itself, as a paper's abstract does. `check` holds that it is there, says something and is short (at most 400 full-width or 800 Latin characters, so a screen with no `<h3>` at all is short as a whole); whether it answers the wish, the read finds out. What follows is detail, under `<h3>` |
+| A screen's abstract | after the screen's `<h2>` and before its detail (the first `<h3>`, table, folded part, numbered steps `<ol>` or `doc-vals`): a `doc-how` line (where, and what to set), with the before → after and one line of what comes out; a screen that only lists things opens with a `doc-lede` sentence instead. It answers the screen's wish by itself, as a paper's abstract does. `check` holds that it is there, says something and is short (at most 400 full-width or 800 Latin characters, so a screen with no `<h3>` at all is short as a whole); whether it answers the wish, the read finds out. What follows is detail, under `<h3>` |
 | One screen at a time | home in `doc-home`, each screen a `<section class="doc-view" id="…">` with a way back (`btn btn-ghost btn-sm`); `#all` shows everything. A card that opens a screen and that screen's `<h2>` say the same words (`check` compares them) |
 | A page that is prose (from Markdown) | `<main class="doc doc-prose">` (`dockit wrap --prose`), or a `doc-prose` section: one column; bare `<h2>`, `<p>`, lists, `<a>`, `<pre><code>`, `<blockquote>`, `<details>`, `<hr>` |
 | A figure made elsewhere (Mermaid, D2, a chart, a screenshot) | `<figure class="doc-fig">` > `<svg>` or `<img>` + `<figcaption>`: it keeps the white ground it was drawn for |

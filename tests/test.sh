@@ -110,6 +110,7 @@ refuses "a screen never closed, without an abstract" '<section class="doc-view" 
 wide=$(printf '\343\201\202%.0s' $(seq 1 401))
 refuses "an abstract of 401 full-width characters" "<section class=\"doc-view\" id=\"wide\"><h2>One</h2><p class=\"doc-how\">$wide</p></section>" 'longer than an abstract.*wide'
 passes "a folded part before the heading, then the abstract" '<section class="doc-view" id="early"><details class="collapse"><summary class="collapse-title">x</summary><div class="collapse-content">y</div></details><h2>One</h2><p class="doc-how">Set it.</p></section>'
+passes "a procedure: a short abstract, then the steps, however long" "<section class=\"doc-view\" id=\"steps\"><h2>One</h2><p class=\"doc-how\">Five steps set it up.</p><ol><li>$long</li></ol></section>"
 passes "a short abstract, and long detail after it" "<section class=\"doc-view\" id=\"fine\"><h2>One</h2><p class=\"doc-lede\">Set it, and this comes out.</p><h3>Detail</h3><p>$long</p></section>"
 # own CSS that would end the style block early is not wrapped
 printf 'p{}</STYLE><p>spill</p>' > "$tmp/spill.css"
@@ -138,9 +139,18 @@ mark() { python3 $dockit lookup "$1" -o "$tmp/marked" | sed -n 's/^mark //p'; }
 printf '<body><h2>One</h2><p>word</p><svg><rect width="1"/></svg></body>' > "$tmp/m1.html"
 printf '<body><h2>One</h2><p>words</p><svg><rect width="1"/></svg></body>' > "$tmp/m2.html"
 printf '<body><h2>One</h2><p>word</p><svg><rect width="2"/></svg></body>' > "$tmp/m3.html"
-mark_of=$(mark "$tmp/m1.html")
-[ ${#mark_of} -eq 12 ] && [ "$mark_of" = "$(mark "$tmp/m1.html")" ] && [ "$mark_of" != "$(mark "$tmp/m2.html")" ] && [ "$mark_of" != "$(mark "$tmp/m3.html")" ] \
-  || { echo "dockit lookup: the mark does not follow the page's words and pictures" >&2; exit 1; }
+# the pictures' mark also follows the line a picture is held to, and how the page's own CSS paints it
+printf '<body><style>.x{fill:red}</style><figure><svg><rect width="1"/></svg><figcaption>one bar</figcaption></figure></body>' > "$tmp/m4.html"
+printf '<body><style>.x{fill:red}</style><figure><svg><rect width="1"/></svg><figcaption>a bar</figcaption></figure></body>' > "$tmp/m5.html"
+printf '<body><style>.x{fill:blue}</style><figure><svg><rect width="1"/></svg><figcaption>one bar</figcaption></figure></body>' > "$tmp/m6.html"
+m4=$(mark "$tmp/m4.html"); m5=$(mark "$tmp/m5.html"); m6=$(mark "$tmp/m6.html")
+[ "${m4##* pictures }" != "${m5##* pictures }" ] && [ "${m4##* pictures }" != "${m6##* pictures }" ] && [ "${m4% pictures *}" = "${m6% pictures *}" ] \
+  || { echo "dockit lookup: the pictures' mark must follow a picture's line and the page's own CSS: $m4 / $m5 / $m6" >&2; exit 1; }
+m1=$(mark "$tmp/m1.html"); m2=$(mark "$tmp/m2.html"); m3=$(mark "$tmp/m3.html")
+[ ${#m1} -eq 40 ] && [ "$m1" = "$(mark "$tmp/m1.html")" ] \
+  && [ "${m1% pictures *}" != "${m2% pictures *}" ] && [ "${m1##* pictures }" = "${m2##* pictures }" ] \
+  && [ "${m1% pictures *}" = "${m3% pictures *}" ] && [ "${m1##* pictures }" != "${m3##* pictures }" ] \
+  || { echo "dockit lookup: a word must change the words' mark alone, a picture the pictures' mark alone: $m1 / $m2 / $m3" >&2; exit 1; }
 grep -q "$(printf 'link on the home')" "$tmp/lookup/index.txt" || { echo "dockit lookup: a link on the home has no row in the index" >&2; exit 1; }
 grep -q 'Long steps and a glossary' "$tmp/lookup/fold-1.txt" || { echo "dockit lookup: what a folded part holds was written nowhere" >&2; exit 1; }
 # the shapes the sample does not have: a screen ends at its own </section> (the footer stays on the home), single

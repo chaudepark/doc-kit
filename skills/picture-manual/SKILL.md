@@ -170,8 +170,9 @@ short file, `../first-reader/references/lookup.md`. Follow it; in short:
   is served by the page, not by a second kind of read.
 - The pictures are read too, one at a time: `python3 ../doc-kit/scripts/dockit pictures page.html -o <run
   dir>/pictures`, one fresh subagent for each quiz, who sees only the picture and chooses its line among its
-  neighbours'; `dockit grade` names the pictures that were not read as what they are. Redraw those, or change
-  their line to what they show.
+  neighbours'; `dockit grade` names the pictures that were not read as what they are. Each is a candidate: look
+  at it and at what its reader saw, then redraw it when its line is true of the tool, or change the line when
+  the picture is.
 - Sort the stumbles: the words (change the card's words, step 2), no place for it (give it one), no fact (nobody
   tried or measured it: an issue, not a rewrite).
 - The reader and the wishes are kept beside the page's source (`<page>.readers.md`), so the next read costs two

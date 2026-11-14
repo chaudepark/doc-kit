@@ -169,7 +169,7 @@ class _Page(html.parser.HTMLParser):
                 screen[1] = True
             elif screen[1] and not screen[3] and not self.abstract and ("doc-how" in classes or "doc-lede" in classes):
                 self.abstract = [tag, 1]  # it is the abstract once it says something (handle_data)
-            elif screen[1] and (tag in ("h3", "table", "details") or "doc-vals" in classes):
+            elif screen[1] and (tag in ("h3", "table", "details", "ol") or "doc-vals" in classes):
                 screen[3] = True
         self.script = self.script or tag == "script"
         if tag == "style":
@@ -428,7 +428,7 @@ def page_text(markup, glance=False):
 
 SECTION = re.compile(r"<section\b([^>]*)>|</section\s*>", re.I)
 # where a screen's detail begins: the same places check knows (_Page)
-DETAIL = re.compile(r"""(?i)<(?:h3|table|details)\b|<\w+\b[^>]*\bclass\s*=\s*["']?[^"'>]*\bdoc-vals\b""")
+DETAIL = re.compile(r"""(?i)<(?:h3|table|details|ol)\b|<\w+\b[^>]*\bclass\s*=\s*["']?[^"'>]*\bdoc-vals\b""")
 ID = re.compile(r"""(?<![\w-])id\s*=\s*(?:"([^"]*)"|'([^']*)')""")
 # shortcut: a fold inside a fold is taken as one fold; read them with an HTML parser if pages start nesting them
 FOLD = re.compile(r"(?s)<details\b(?![^>]*\sopen\b)[^>]*>(.*?)</details>")
@@ -450,8 +450,8 @@ def screens_of(page):
 
 def lookup(args):
     """A page in the two steps a reader with a wish meets it (the first-reader skill's references/lookup.md)."""
-    page = pathlib.Path(args.page).read_text(encoding="utf-8")
-    page = re.sub(r"(?s)<!--.*?-->|<(style|script)\b.*?</\1>", "", page)
+    whole = pathlib.Path(args.page).read_text(encoding="utf-8")
+    page = re.sub(r"(?s)<!--.*?-->|<(style|script)\b.*?</\1>", "", whole)
     page = re.sub(r"(?s)^.*?<body[^>]*>", "", page, count=1)
     out = pathlib.Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -499,9 +499,12 @@ def lookup(args):
     print("%s: home.txt (what is seen before anything is pressed), %d screens (screen-<name>.txt, and its abstract "
           "alone as abstract-<name>.txt) and %d folded parts, index.txt (what opens which file, for the one who runs the read)"
           % (out, len(files), sum("\tfolded" in line for line in index)))
-    # the same words and the same pictures give the same mark: a page whose mark is that of its last read has changed neither
-    drawn = "".join(re.findall(r"(?is)<svg\b.*?</svg>|<img\b[^>]*>", page))
-    print("mark %s" % hashlib.sha256((page_text(page) + drawn).encode("utf-8")).hexdigest()[:12])
+    # the same words give the same first mark, the same pictures held to the same lines the same second one: what a
+    # mark of the last read still fits has not changed, and is not read again
+    # (and how they are painted: the page's own CSS, not the kit's, so a rebuilt kit moves neither mark)
+    drawn = ("".join("%s\0%s\0" % (unit["markup"], unit["words"]) for unit in _Pictures(uncommented(whole)).units)
+             + "".join(css for is_kit, css in read(whole).styles if not is_kit))
+    print("mark words %s pictures %s" % tuple(hashlib.sha256(part.encode("utf-8")).hexdigest()[:12] for part in (page_text(page), drawn)))
     return 0
 
 
@@ -618,6 +621,11 @@ class _Pictures(html.parser.HTMLParser):
             self.caption.append(data)
 
 
+def uncommented(page):
+    """The page with its comments blanked, every other character where it was (a picture is cut out by its place)."""
+    return re.sub(r"(?s)<!--.*?-->", lambda m: re.sub(r"[^\n]", " ", m.group(0)), page)
+
+
 def browser():
     """A Chromium-family browser to take the pictures with ($DOCKIT_BROWSER names one that is somewhere else)."""
     for path in ([os.environ["DOCKIT_BROWSER"]] if os.environ.get("DOCKIT_BROWSER") else BROWSERS):
@@ -635,15 +643,34 @@ def pictures(args):
     were not read as what they are. (first-reader's references/lookup.md: the pictures are read too.)"""
     page = pathlib.Path(args.page).read_text(encoding="utf-8")
     seen = read(page)
-    units = _Pictures(re.sub(r"(?s)<!--.*?-->", lambda m: re.sub(r"[^\n]", " ", m.group(0)), page)).units
+    units = _Pictures(uncommented(page)).units
+    # the same picture in two parts of a page (a card's, and again among a setting's values) is one picture shown
+    # twice: it is asked about once, where it has a caption if it has one. Two alike in one part are two pictures
+    # that cannot be told apart, and both are asked: that miss is true.
+    kept, again = [], []
+    for unit in units:
+        twin = next((other for other in kept if other["markup"] == unit["markup"] and other["group"] != unit["group"]), None)
+        if twin is None:
+            kept.append(unit)
+        elif unit["caption"] and not twin["caption"]:
+            kept[kept.index(twin)] = unit
+            again.append(twin)
+        else:
+            again.append(unit)
+    units = sorted(kept, key=lambda unit: unit["start"])
     asked, alone = [], []
     for n, unit in enumerate(units):
         unit["n"] = n
+        unit["drawn"] = set(re.findall(r"(?is)<svg\b.*?</svg>|<img\b[^>]*>", unit["markup"]))
     for unit in units:
         near = sorted((other for other in units if other is not unit), key=lambda other: (other["group"] != unit["group"], abs(other["n"] - unit["n"])))
         others = []
         for other in near:
-            if other["words"] and other["words"] != unit["words"] and other["words"] not in others:
+            # a line that is also true of this picture is not offered against it: the other, in another part of the
+            # page, is this drawing again or holds all of it (a card's before-and-after and the value it ends in).
+            # Two cards that share only their "now" are two pictures.
+            shown_again = other["group"] != unit["group"] and (other["drawn"] <= unit["drawn"] or unit["drawn"] <= other["drawn"])
+            if other["words"] and other["words"] != unit["words"] and other["words"] not in others and not shown_again:
                 others.append(other["words"])
         if not unit["words"] or not others:
             alone.append(unit)
@@ -657,11 +684,14 @@ def pictures(args):
     for stale in out.glob("quiz-*"):  # only what an earlier run of this command made
         if stale.is_dir() and re.fullmatch(r"quiz-\d+", stale.name) and (stale / "quiz.md").exists():
             shutil.rmtree(stale)
-    (out / "unasked.txt").write_text("".join("%s\t(under: %s)\n" % (unit["words"] or "(no words of its own)", unit["heading"] or "no heading")
-                                             for unit in alone), encoding="utf-8")
+    (out / "unasked.txt").write_text(
+        "".join("%s\tno words of its own, or no neighbour with other words (under: %s)\n" % (unit["words"] or "(no words)", unit["heading"] or "no heading") for unit in alone)
+        + "".join("%s\tthe same picture as one that is asked about, in another part of the page\n" % (unit["words"] or "(no words)") for unit in again), encoding="utf-8")
+    twice = len(again)
     if not asked:
         (out / "key.tsv").write_text("", encoding="utf-8")
-        print("%s: no picture to read (%d on the page, none with words of its own and a neighbour to tell it from: unasked.txt)" % (out, len(units)))
+        print("%s: no picture to read (%d on the page, none with words of its own and a neighbour to tell it from; %d more "
+              "are the same picture again: unasked.txt)" % (out, len(units), twice))
         return 0
     chrome = browser()
     if not chrome:
@@ -696,7 +726,8 @@ def pictures(args):
                               % (html.escape(seen.lang or "en"), head, shared, " doc-prose" if seen.prose else "",
                                  unit["before"], unit["markup"], unit["after"]), encoding="utf-8")
             # the browser's own profile, as the screenshots of the page use it (a fresh profile does not start headless)
-            jobs.append([chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--window-size=500,600",
+            # a phone's width, and a phone's sharpness: what is told apart by a fine line is not lost to the file
+            jobs.append([chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--window-size=500,600", "--force-device-scale-factor=2",
                          "--screenshot=%s" % unit["file"].resolve(), "file://%s#all" % source])
             key.append("%03d\t%s\t%s\n" % (n, "ABCD"[unit["options"].index(unit["words"])], unit["words"]))
         taken = lambda unit: unit["file"].exists() and unit["file"].stat().st_size > 100
@@ -725,7 +756,8 @@ def pictures(args):
     (out / "key.tsv").write_text("".join(key), encoding="utf-8")
     print("%s: %d pictures for %d readers (quiz-<n>/quiz.md: one fresh reader each, who gets that directory and nothing else); "
           "key.tsv is for dockit grade, not for a reader. %d pictures are not asked about (unasked.txt): no words of their "
-          "own, or no neighbour to tell them from." % (out, len(asked), len(quizzes), len(alone)))
+          "own, or no neighbour to tell them from. %d stand on the page a second time and are asked about once."
+          % (out, len(asked), len(quizzes), len(alone), twice))
     return 0
 
 
@@ -747,7 +779,7 @@ def grade(args):
     missed = [(number, said[number]) for number, letter, _ in key if number in said and said[number][0] != letter]
     silent = [number for number, _, _ in key if number not in said]
     print("%d pictures: %d read as what they are, %d not, %d without an answer. A right choice can be right by chance "
-          "(one time in four, of four lines): it is the misses that are findings." % (len(key), len(key) - len(missed) - len(silent), len(missed), len(silent)))
+          "(one time in four, of four lines); a miss is a candidate: look at the picture and at what its reader saw." % (len(key), len(key) - len(missed) - len(silent), len(missed), len(silent)))
     words = {number: text for number, _, text in key}
     for number, (letter, saw) in missed:
         quiz = next(out.glob("quiz-*/pic-%s.png" % number))
@@ -803,7 +835,7 @@ def problems(seen):
 
     if seen.bare:
         out.append("a screen opens without its abstract (after its heading and before its detail, which begins at the first "
-                   "h3, table, folded part or doc-vals: a doc-how line or a doc-lede sentence that says something): " + some(seen.bare))
+                   "h3, table, folded part, numbered steps or doc-vals: a doc-how line or a doc-lede sentence that says something): " + some(seen.bare))
     if seen.long:
         out.append("a screen's abstract is longer than an abstract (what stands between its heading and its detail: at most "
                    "400 full-width characters, or 800 Latin ones; put the rest under an h3 or fold it): " + some(seen.long))

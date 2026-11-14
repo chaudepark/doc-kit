@@ -15,11 +15,14 @@ and the pictures read, in this order.
 - **The page's text, in the steps a reader meets it.**
   `python3 <doc-kit>/scripts/dockit lookup page.html -o <run dir>` (`<doc-kit>` is the doc-kit skill's
   directory, beside this skill's). It writes `home.txt` (the page before anything is pressed), for each
-  screen `abstract-<name>.txt` (what the screen says before its detail begins) and `screen-<name>.txt`
+  screen `abstract-<name>.txt` (what the screen says before its detail begins: the first `<h3>`, table,
+  folded part, numbered steps or values side by side) and `screen-<name>.txt`
   (all of it), one `fold-<n>.txt` for what each folded part holds, and `index.txt` (what opens which file:
-  a card, a folded part, a link on the home; for you, not for the readers). Its last line, `mark …`, is
-  a mark of the page's words and pictures: write it in the readers file. A page whose mark is that of its
-  last read says and shows the same, and is not read again. It works on any HTML page: one that is not in screens is cut at its
+  a card, a folded part, a link on the home; for you, not for the readers). Its last line,
+  `mark words … pictures …`, is two marks: write them in the readers file. The words are read again when
+  the first has changed since the readers file last recorded it; the pictures when the second has (a
+  picture was redrawn, the line it is held to was changed, or the page's own CSS, which paints them). What
+  a mark still fits is not read again; a rebuilt kit moves neither. It works on any HTML page: one that is not in screens is cut at its
   `<h2>` headings.
 - **The page's pictures, each alone.**
   `python3 <doc-kit>/scripts/dockit pictures page.html -o <run dir>/pictures` (it needs a Chromium-family
@@ -94,8 +97,10 @@ For each wish, you decide, against the tool's reference (the readers do not know
 - **from the abstract**: pressed the right place, and what they would do is right, from step 2. For a wish
   the tool cannot fulfil: they say it cannot be done, and quote the page saying so.
 - **from the screen**: right, but only in step 3, or after a wrong first press. When the wish is the
-  screen's own wish, this is a finding: the abstract does not carry the answer. When the wish is about one
-  of the screen's details (which value, an exception), the detail is where it belongs.
+  screen's own wish, this is a finding: the abstract does not carry the answer. It is not one in two cases.
+  The wish is about one of the screen's details (which value, an exception): the detail is where it
+  belongs. Or the screen is a procedure: numbered steps (`<ol>`) are detail, so its abstract says what
+  the steps reach and that they follow, the steps themselves are read from the screen, and that is right.
 - **not found**: gave up, or ended somewhere else, or would do the wrong thing. Sure and wrong is the worst
   kind: note it.
 
@@ -124,18 +129,33 @@ line is its own.
    what it is: its file, the line it is held to, the line it was read as, and what the reader saw.
 
 A picture's line is its caption, else its own label, else its card's title, else the heading it stands
-under; the other lines are its nearest neighbours' (the other values of the same setting first). A miss
-means the picture does not say its line, or cannot be told from its neighbour. Look at the picture file:
-when the line is true of the tool, redraw the picture so that the difference shows; when the picture is
-what the tool does, the line is wrong, so change the line. `unasked.txt` lists the pictures that were not
-asked about (no words of their own, or no neighbour with other words): give each a label. An icon in a
+under; the other lines are its nearest neighbours' (the other values of the same setting first). A
+picture that stands in two parts of the page (a card's, and again among a setting's values) is asked
+about once, and a line that belongs to the same drawing in another part is not offered against it. Two
+pictures drawn alike in one part are both asked: a miss there is true, they cannot be told apart.
+
+A miss is a candidate, not yet a finding: it means the picture does not say its line, or cannot be told
+from its neighbour, by a reader choosing among near-identical neighbours at a phone's width. Look at the
+picture file, and read what the reader wrote after the colon: it tells what the picture fails to mark
+(which lane drives, above or below), and that is the useful part. When the line is true of the tool,
+redraw the picture so that the difference shows; when the picture is what the tool does, the line is
+wrong, so change the line. A picture that only points at another ("the same sound as X") is read as X,
+and rightly: that miss is the quiz's, so say so in the readers file and leave the picture. `unasked.txt` lists the pictures that were not
+asked about, each with why: no words of its own or no neighbour with other words (give it a label), or
+the same picture again in another part of the page (nothing to do). An icon in a
 button, a badge, a key or a heading is not a picture, and a `<canvas>` is not read.
 
 ## The second round, and the end
 
-After the fixes: the same wishes, the same persona, new subagents; `dockit pictures` and its readers
-again. Mark the wishes whose heading or abstract the fix moved towards the wish's own words; a hit there
-was bought, not found. One second round, no third: what still stumbles goes in the hand-over.
+After the fixes, run `dockit lookup` again. The words' mark has changed: the same wishes, the same
+persona, new subagents. The pictures' mark has changed: `dockit pictures` and its readers again; when it
+has not, the pictures are not asked again. Mark the wishes whose heading or abstract the fix moved towards
+the wish's own words; a hit there was bought, not found.
+
+One second round, no third. What the second round finds is fixed too, and that fix stands without a
+read: write the page's marks after it in the readers file as `after round 2, not read`, and say in the
+hand-over what was changed after the last read. Those marks are then the page's last ones; it is read
+again when a mark next changes.
 
 ## Limits, to say in the hand-over
 
@@ -143,8 +163,10 @@ was bought, not found. One second round, no third: what still stumbles goes in t
   sample: run again, a reader can press differently. What the readers found is real (hold it against the
   page); what they did not find proves nothing. No person has been compared with these readers.
 - A picture's reader chooses among four lines or fewer, so one right choice in four (or more) is right by chance: a
-  miss is a finding, a hit is not proof. The reader is a model looking at an image file, at phone width;
-  whether a person sees the same at a glance has not been measured.
+  miss is a candidate, a hit is not proof. The reader is a model looking at an image file, at a phone's
+  width; on its first real manual about half of the pictures were missed, most of them neighbours of one
+  setting that differ by a fine detail, and the two pairs looked at were drawn right. Whether a person
+  sees the same at a glance has not been measured.
 
 ## `<page>.readers.md`
 
@@ -160,14 +182,15 @@ B. …
 H.* …
 J.*✗ … (cannot: "<the reference's sentence>")
 
-Round 1 (<date>, the page's source at <commit>, mark <the mark dockit lookup printed>)
+Round 1 (<date>, the page's source at <commit>, mark words <…> pictures <…>)
 Words: from the abstract: A, C, E. From the screen: B, D. Not found: J.
 Stumbles: <words / no place / no fact, one line each, with the page's words quoted>
 The readers' questions: 1: … 2: …
 Pictures: <how many> read, <how many> not read as what they are: <number: is / read as, one line each>
 
-Round 2 (<date>, the page's source at <commit>, mark <mark>; moved towards the wish: D)
+Round 2 (<date>, the page's source at <commit>, mark words <…> pictures <…>; moved towards the wish: D)
 Words: from the abstract: … From the screen: … Not found: …
-Pictures: …
+Pictures: … (or: not asked again, their mark is round 1's)
+After round 2, not read (mark words <…> pictures <…>): <what was changed>
 Left for the hand-over: …
 ```

@@ -34,11 +34,29 @@ grep -q '11 pictures: 10 read as what they are, 1 not, 0 without an answer' "$tm
 # a card whose title stands after its picture: the picture is held to its own card's title, not the one before;
 # a label over two lines stays one line of the key; a directory of the user's that is named quiz-… is left alone
 printf '%s' '<div class="doc-cards"><div class="card"><figure><svg viewBox="0 0 10 10"><rect width="3" height="3"/></svg></figure><div class="card-body"><h3 class="card-title">Load a file</h3></div></div><div class="card"><figure><svg viewBox="0 0 10 10"><rect width="6" height="6"/></svg></figure><div class="card-body"><h3 class="card-title">Press play</h3></div></div><div class="card"><figure><svg viewBox="0 0 10 10" aria-label="the
-  result"><rect width="9" height="9"/></svg></figure><div class="card-body"><h3 class="card-title">Hear it</h3></div></div></div>' > "$tmp/body.html"
+  result"><rect width="9" height="9"/></svg></figure><div class="card-body"><h3 class="card-title">Hear it</h3></div></div></div><div class="doc-vals"><figure class="doc-pic"><svg viewBox="0 0 10 10"><rect width="3" height="3"/></svg><figcaption>a small square</figcaption></figure></div>' > "$tmp/body.html"
 python3 $dockit wrap "$tmp/body.html" -o "$tmp/flow.html" --title flow 2>/dev/null
 mkdir -p "$tmp/flow/quiz-notes" && echo mine > "$tmp/flow/quiz-notes/a.md"
 DOCKIT_BROWSER="$tmp/browser" python3 $dockit pictures "$tmp/flow.html" -o "$tmp/flow" >/dev/null
-DOCKIT_BROWSER="$tmp/browser" python3 $dockit pictures "$tmp/flow.html" -o "$tmp/flow" >/dev/null
-[ "$(cut -f 3 "$tmp/flow/key.tsv" | tr '\n' '|')" = "Load a file|Press play|the result|" ] || { echo "dockit pictures: a card's picture is held to the wrong words" >&2; cat "$tmp/flow/key.tsv" >&2; exit 1; }
+DOCKIT_BROWSER="$tmp/browser" python3 $dockit pictures "$tmp/flow.html" -o "$tmp/flow" > "$tmp/out2"
+# (the first card's picture stands again among the values, with a caption: it is asked about once, as the captioned one)
+[ "$(cut -f 3 "$tmp/flow/key.tsv" | tr '\n' '|')" = "Press play|the result|a small square|" ] || { echo "dockit pictures: a card's picture is held to the wrong words, or the same picture is asked about twice" >&2; cat "$tmp/flow/key.tsv" >&2; exit 1; }
 [ -f "$tmp/flow/quiz-notes/a.md" ] || { echo "dockit pictures: removed a directory it did not make" >&2; exit 1; }
+# pictures are taken twice as sharp as the window is wide
+[ "$(python3 -c 'import struct, sys; print(struct.unpack(">I", open(sys.argv[1], "rb").read()[16:20])[0])' "$(ls "$tmp/flow"/quiz-*/pic-001.png)")" -eq 1000 ] || { echo "dockit pictures: a picture is not 1000 pixels wide" >&2; exit 1; }
+grep -q '1 stand on the page a second time' "$tmp/out2" && grep -q 'Load a file.*the same picture' "$tmp/flow/unasked.txt" || { echo "dockit pictures: the picture that stands twice is not accounted for" >&2; exit 1; }
+# wish cards share their "now" and differ in their "then": each is asked against the others; a value that is one
+# card's "then" is not offered that card's line, nor the card the value's
+now='<svg viewBox="0 0 10 10"><rect width="2" height="2"/></svg>'
+card() { printf '<a class="card" href="#v"><div class="card-body"><h3 class="card-title">%s</h3><div class="doc-ba"><div>%s</div><span class="doc-to">to</span><div><svg viewBox="0 0 10 10"><rect width="%s" height="2"/></svg></div></div></div></a>' "$1" "$now" "$2"; }
+{ printf '<div class="doc-cards-2">'; card "move the bass" 4; card "hold the bass" 6; card "double the bass" 8; printf '</div>'
+  printf '<section class="doc-view" id="v"><h2>Bass</h2><p class="doc-how">Set Bass.</p><div class="doc-vals"><figure class="doc-pic"><svg viewBox="0 0 10 10"><rect width="4" height="2"/></svg><figcaption>approach one note before</figcaption></figure><figure class="doc-pic"><svg viewBox="0 0 10 10"><rect width="9" height="2"/></svg><figcaption>root stays</figcaption></figure></div></section>'; } > "$tmp/body.html"
+python3 $dockit wrap "$tmp/body.html" -o "$tmp/cards.html" --title cards 2>/dev/null
+DOCKIT_BROWSER="$tmp/browser" python3 $dockit pictures "$tmp/cards.html" -o "$tmp/cards" >/dev/null
+[ "$(wc -l < "$tmp/cards/key.tsv")" -eq 5 ] || { echo "dockit pictures: a wish card's picture is left out" >&2; cat "$tmp/cards/key.tsv" >&2; exit 1; }
+lines_of() { awk -v words="$1" 'BEGIN { RS = "## " } index($0, words) && !done { print; done = 1 }' "$tmp/cards"/quiz-*/quiz.md; }
+options_of() { number=$(awk -F '\t' -v words="$1" '$3 == words { print $1 }' "$tmp/cards/key.tsv"); cat "$tmp/cards"/quiz-*/quiz.md | awk -v n="$number" '$1 == "##" { on = ($2 == n) } on && /^[A-D]\. /'; }
+options_of "move the bass" | grep -q 'hold the bass' || { echo "dockit pictures: a wish card is not asked against another card" >&2; exit 1; }
+if options_of "move the bass" | grep -q 'approach one note'; then echo "dockit pictures: a card is offered the line of the value it ends in" >&2; exit 1; fi
+if options_of "approach one note before" | grep -q 'move the bass'; then echo "dockit pictures: a value is offered the line of the card that shows it" >&2; exit 1; fi
 echo ok

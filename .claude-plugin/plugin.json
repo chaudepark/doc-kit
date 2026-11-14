@@ -1,6 +1,6 @@
 {
   "name": "doc-kit",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Documents an agent writes for people, in one look: manuals in pictures, explainers for one reader, chaptered books, D2 diagrams and decks, simulated first readers, a lint for Japanese prose (yomiyasu). Pages are one self-contained dark HTML file built from a fixed set of parts (daisyUI 5 on Tailwind 4, prebuilt) and checked by a script.",
   "author": {
     "name": "chaudepark",

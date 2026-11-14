@@ -1,6 +1,6 @@
 {
   "name": "doc-kit",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "One look for document pages (daisyUI 5 on Tailwind 4, prebuilt), with the skills that write them",
   "packageManager": "pnpm@12.18.0",
   "scripts": {
