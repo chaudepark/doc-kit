@@ -54,7 +54,7 @@ ask ─→ a skill sets the steps ─→ the body (parts only) ─→ one HTML f
 - **Checked**: `dockit check` stops a page that uses a class no style defines (the kit holds only the sample's) or a `style=` attribute, carries an old `kit.css`, names a picture's class like a part, heads a screen in other words than the card that opens it, opens a screen without a short abstract, or would make the browser fetch what is not in the file.
 - **Read before you read it**: `first-reader`'s simulated readers go through every page (a manual by lookup, with the wishes a user would come with: `skills/first-reader/references/lookup.md`; prose from top to bottom; of a book, its first chapter and the chapters with exercises), and what they stumbled on is fixed first. It is left out only when the page says the same words as at its last read (a restyle, a rebuilt kit). The read finds defects; it does not show that a page reads well.
 - **One file**: a page opens offline and on a phone. The repository that uses the kit needs no Node and no build (`dockit` is Python 3.9, standard library only; taking pictures needs a Chromium-family browser).
-- **Any language**: a page takes its language from its text (Japanese when its prose has kana, otherwise English; code is not counted), or from `--lang`. The fonts are the ones Mac, Windows and Linux already have for Latin and Japanese.
+- **Any language**: a page takes its language from its text (Japanese when more than one in ten of its prose's letters is kana or kanji, counted against the Latin alphabet; otherwise English; code is not counted). There is no flag for it. The fonts are the ones Mac, Windows and Linux already have for Latin and Japanese.
 
 A part is added to the sample in this repository, not on a page. The rule is to ask the owner first: few parts is the point.
 
@@ -88,10 +88,10 @@ What was actually run: the read by lookup was worked out on one real manual (two
 | Shape | For | Made with |
 |---|---|---|
 | Wide (cards and pictures) | manuals, cheat sheets; one screen at a time | write the body, then `dockit wrap` |
-| Prose (one column) | explanations, reports, a book's chapters; from Markdown | `explainer`'s `build-html.mjs`, or `dockit wrap --prose` |
+| Prose (read in order) | explanations, reports, a book's chapters; from Markdown | `explainer`'s `build-html.mjs`, or `dockit wrap` (a body without a `<section>`) |
 
 ```sh
-python3 skills/doc-kit/scripts/dockit wrap body.html -o page.html --title "Title" [--css own.css] [--prose] [--lang en]
+python3 skills/doc-kit/scripts/dockit wrap body.html -o page.html
 python3 skills/doc-kit/scripts/dockit check page.html
 node skills/explainer/scripts/build-html.mjs docs/<topic>/README.md     # → docs/<topic>/dist/index.html
 ```

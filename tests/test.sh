@@ -7,41 +7,64 @@ dockit=skills/doc-kit/scripts/dockit
 tmp=$(mktemp -d)
 trap 'rm -r "$tmp"' EXIT
 
+# the bodies below are fragments: wrap gives each the <h1> a page must have
+wrap() { { printf '<h1>t</h1>'; cat "$tmp/body.html"; } > "$tmp/whole.html"; python3 $dockit wrap "$tmp/whole.html" -o "$1"; }
 sh scripts/build-kit.sh "$tmp/kit.css" 2>/dev/null
 cmp "$tmp/kit.css" skills/doc-kit/kit.css || { echo "kit.css is behind src/: pnpm build" >&2; exit 1; }
-python3 $dockit wrap src/sample.html -o "$tmp/sample.html" --title "doc-kit sample" --lang en
+python3 $dockit wrap src/sample.html -o "$tmp/sample.html"
 cmp "$tmp/sample.html" skills/doc-kit/sample.html || { echo "sample.html is behind src/: pnpm build" >&2; exit 1; }
 python3 $dockit check skills/doc-kit/sample.html
 
+# nothing is chosen at wrap: no flag for the page's shape or its language. The body says both.
+grep -q '<html lang="en">' skills/doc-kit/sample.html || { echo "the sample, English with a line of Japanese, was not read as en" >&2; exit 1; }
+grep -q '<main class="doc" id="all">' skills/doc-kit/sample.html || { echo "a body in sections was set as prose" >&2; exit 1; }
+for flag in --prose "--lang en" "--title t" "--css src/kit.css"; do
+  if python3 $dockit wrap src/sample.html -o "$tmp/flag.html" $flag 2>/dev/null; then echo "dockit wrap took $flag: nothing about a page is chosen there" >&2; exit 1; fi
+done
+printf '<h1>Title</h1><p>Text read in order.</p><table class="table"><tr><td>a</td></tr></table>' > "$tmp/body.html"
+wrap "$tmp/prose.html" 2>/dev/null
+grep -q '<main class="doc doc-prose" id="all">' "$tmp/prose.html" || { echo "a body without a section was not set as prose" >&2; exit 1; }
+# a Japanese page that names an English tool is Japanese
+printf '<h1>Claude Code の設定を開く</h1><p>Settings を開き、Model を選びます。</p>' > "$tmp/body.html"
+wrap "$tmp/ja.html" 2>/dev/null
+grep -q '<html lang="ja">' "$tmp/ja.html" || { echo "a Japanese page with English names was not read as ja" >&2; exit 1; }
+# kanji count with kana and an entity's name is not a letter: a table of English names with Japanese words is Japanese
+printf '<h1>Tonverk \343\203\221\343\203\251\343\203\241\343\203\274\343\202\277</h1><table class="table"><tr><td>Filter Cutoff</td><td>\351\201\256\346\226\255\345\221\250\346\263\242\346\225\260</td></tr><tr><td>Filter Resonance</td><td>\345\205\261\346\214\257&nbsp;&rarr;&nbsp;\345\207\272\345\212\233</td></tr></table>' > "$tmp/body.html"
+python3 $dockit wrap "$tmp/body.html" -o "$tmp/ja.html" 2>/dev/null
+grep -q '<html lang="ja">' "$tmp/ja.html" || { echo "a Japanese table of English names was not read as ja" >&2; exit 1; }
+# the workflow that rebuilds the kit calls wrap the one way there is
+if grep -q -e '--title' -e '--lang' -e '--prose' -e '--css' .github/workflows/kit.yml; then echo "kit.yml passes wrap a flag it no longer has" >&2; exit 1; fi
+# the prose shape is not narrower than a page: a table or code is not squeezed into the text's column
+if grep -q 'doc-prose{[^}]*max-width' skills/doc-kit/kit.css; then echo "doc-prose holds the page to a width again" >&2; exit 1; fi
+
 # a class off the kit, and a picture's class named like a kit part: both must fail
 printf '<p class="text-[13px]">x</p>' > "$tmp/body.html"
-python3 $dockit wrap "$tmp/body.html" -o "$tmp/off.html" --title off
+wrap "$tmp/off.html"
 python3 $dockit check "$tmp/off.html" 2>"$tmp/err" && { echo "check passed a class off the kit" >&2; exit 1; }
 grep -q 'text-\[13px\]' "$tmp/err"
 printf '<svg><rect class="btn"/></svg>' > "$tmp/body.html"
-python3 $dockit wrap "$tmp/body.html" -o "$tmp/clash.html" --title clash
+wrap "$tmp/clash.html"
 python3 $dockit check "$tmp/clash.html" 2>"$tmp/err" && { echo "check passed a picture class that is a kit part" >&2; exit 1; }
 grep -q 'btn' "$tmp/err"
 # a page with its own classes defined in its own CSS passes
-printf '.cont-input { fill: #d9822b }' > "$tmp/own.css"
-printf '<svg><rect class="cont-input"/></svg>' > "$tmp/body.html"
-python3 $dockit wrap "$tmp/body.html" -o "$tmp/own.html" --title own --css "$tmp/own.css"
+printf '<style>.cont-input { fill: #d9822b }</style><svg><rect class="cont-input"/></svg>' > "$tmp/body.html"
+wrap "$tmp/own.html"
 python3 $dockit check "$tmp/own.html"
 # a card and its screen in different words fail; in the same words they pass
 printf '<div class="doc-home"><a class="card" href="#bass"><h3 class="card-title">move the bass</h3></a></div><section class="doc-view" id="bass"><h2>Bass motion</h2></section>' > "$tmp/body.html"
-python3 $dockit wrap "$tmp/body.html" -o "$tmp/names.html" --title names
+wrap "$tmp/names.html"
 python3 $dockit check "$tmp/names.html" 2>"$tmp/err" && { echo "check passed a card and a screen in different words" >&2; exit 1; }
 grep -q 'Bass motion' "$tmp/err"
 printf '<div class="doc-home"><a class="card" href="#bass"><h3 class="card-title">move the bass</h3></a></div><section class="doc-view" id="bass"><h2>move the bass</h2><p class="doc-how">set Bass</p></section>' > "$tmp/body.html"
-python3 $dockit wrap "$tmp/body.html" -o "$tmp/names.html" --title names
+wrap "$tmp/names.html"
 python3 $dockit check "$tmp/names.html"
 # a figure made elsewhere keeps its tool's classes
 printf '<figure class="doc-fig"><svg><g class="edgePath"/></svg></figure>' > "$tmp/body.html"
-python3 $dockit wrap "$tmp/body.html" -o "$tmp/fig.html" --title fig --prose
+wrap "$tmp/fig.html"
 python3 $dockit check "$tmp/fig.html"
 
 # check reads the page as a browser does. refuses/passes: <what it is> <body> <words the refusal must carry> [own css]
-wrapped() { printf '%s' "$1" > "$tmp/body.html"; python3 $dockit wrap "$tmp/body.html" -o "$tmp/case.html" --title case ${2:+--css "$2"} 2>/dev/null; }
+wrapped() { { [ -z "${2:-}" ] || { printf '<style>'; cat "$2"; printf '</style>'; }; printf '%s' "$1"; } > "$tmp/body.html"; wrap "$tmp/case.html" 2>/dev/null; }
 refuses() {
   wrapped "$2" "${4:-}"
   if python3 $dockit check "$tmp/case.html" 2>"$tmp/err"; then echo "check passed $1" >&2; exit 1; fi
@@ -112,10 +135,13 @@ refuses "an abstract of 401 full-width characters" "<section class=\"doc-view\" 
 passes "a folded part before the heading, then the abstract" '<section class="doc-view" id="early"><details class="collapse"><summary class="collapse-title">x</summary><div class="collapse-content">y</div></details><h2>One</h2><p class="doc-how">Set it.</p></section>'
 passes "a procedure: a short abstract, then the steps, however long" "<section class=\"doc-view\" id=\"steps\"><h2>One</h2><p class=\"doc-how\">Five steps set it up.</p><ol><li>$long</li></ol></section>"
 passes "a short abstract, and long detail after it" "<section class=\"doc-view\" id=\"fine\"><h2>One</h2><p class=\"doc-lede\">Set it, and this comes out.</p><h3>Detail</h3><p>$long</p></section>"
-# own CSS that would end the style block early is not wrapped
-printf 'p{}</STYLE><p>spill</p>' > "$tmp/spill.css"
-if python3 $dockit wrap "$tmp/body.html" -o "$tmp/spill.html" --title spill --css "$tmp/spill.css" 2>"$tmp/err"; then echo "wrap took CSS that ends its own style block" >&2; exit 1; fi
-grep -q 'style block' "$tmp/err" || { echo "wrap refused the CSS for another reason:" >&2; cat "$tmp/err" >&2; exit 1; }
+# the title is the body's <h1>, markup and all; a body without one is not wrapped
+printf '<h1>A &amp; <code>B</code></h1><p>x</p>' > "$tmp/body.html"
+python3 $dockit wrap "$tmp/body.html" -o "$tmp/title.html" 2>/dev/null
+grep -q '<title>A &amp; B</title>' "$tmp/title.html" || { echo "the title was not taken from the h1" >&2; exit 1; }
+printf '<p>no heading</p>' > "$tmp/body.html"
+if python3 $dockit wrap "$tmp/body.html" -o "$tmp/title.html" 2>"$tmp/err"; then echo "wrap took a body without an h1" >&2; exit 1; fi
+grep -q 'h1' "$tmp/err" || { echo "wrap refused a body without an h1 for another reason:" >&2; cat "$tmp/err" >&2; exit 1; }
 
 # a page's text for the readers: headings marked, pictures as their labels, no markup, no CSS
 python3 $dockit text skills/doc-kit/sample.html > "$tmp/sample.txt"
@@ -180,10 +206,10 @@ grep -q '<html lang="ja">' docs/figure-cheatsheet/dist/README.ja.html || { echo 
 grep -q 'href="../README.ja.md"' docs/figure-cheatsheet/dist/index.html || { echo "the link to the other language does not point beside the source" >&2; exit 1; }
 # dockit reads the language the same way: kana inside <pre> or <code> is not prose
 printf '<p>English text</p><pre><code>\343\201\213\343\201\252</code></pre>' > "$tmp/body.html"
-python3 $dockit wrap "$tmp/body.html" -o "$tmp/lang.html" --title lang
+wrap "$tmp/lang.html"
 grep -q '<html lang="en">' "$tmp/lang.html" || { echo "dockit read the language from code" >&2; exit 1; }
-printf '<p>\343\201\213\343\201\252</p>' > "$tmp/body.html"
-python3 $dockit wrap "$tmp/body.html" -o "$tmp/lang.html" --title lang
+printf '<section><p>\343\201\213\343\201\252</p></section>' > "$tmp/body.html"
+wrap "$tmp/lang.html"
 grep -q '<html lang="ja">' "$tmp/lang.html" || { echo "dockit did not read kana in prose as ja" >&2; exit 1; }
 # a wide Japanese page is read as a manual, and what the lint names does not fail it
 python3 $dockit check "$tmp/lang.html" > "$tmp/words.out" || { echo "what the lint named failed a page" >&2; exit 1; }

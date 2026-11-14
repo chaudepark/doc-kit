@@ -100,7 +100,7 @@ jobs:
           test -f "$css" && ! test -L "$css"
           cp "$css" skills/doc-kit/kit.css
           python3 skills/doc-kit/scripts/dockit classes src/sample.html > src/classes.txt
-          python3 skills/doc-kit/scripts/dockit wrap src/sample.html -o skills/doc-kit/sample.html --title 'doc-kit sample' --lang en
+          python3 skills/doc-kit/scripts/dockit wrap src/sample.html -o skills/doc-kit/sample.html
           # the same checker every page meets: among other things, the CSS loads nothing from outside
           python3 skills/doc-kit/scripts/dockit check skills/doc-kit/sample.html
           if git diff --quiet -- skills/doc-kit/kit.css skills/doc-kit/sample.html src/classes.txt; then

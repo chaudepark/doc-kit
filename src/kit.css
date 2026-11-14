@@ -75,8 +75,9 @@
   .doc-home, .doc-view:target, .doc:target .doc-view { @apply grid gap-10; }
   .doc:has(.doc-view:target) .doc-home { display: none; }
 
-  /* prose: a page written as Markdown (an explainer, a report, a book's chapter): one column to read */
-  .doc.doc-prose, .doc .doc-prose { max-width: 50rem; gap: 1rem; }
+  /* prose: a page written as Markdown (an explainer, a report, a book's chapter). Its lines are held by the p/li width above;
+     the page itself is as wide as any other, so that a table, a figure or code is not squeezed into the text's column */
+  .doc.doc-prose, .doc .doc-prose { gap: 1rem; }
   .doc-prose :where(h2) { @apply mt-8 border-t pt-6; border-color: var(--color-base-300); }
   .doc-prose :where(h3) { @apply mt-4; }
   .doc-prose :where(a):not(.btn, .tab, .card) { color: var(--color-primary); text-decoration: underline; }
@@ -86,6 +87,10 @@
   .doc-fig { margin: 0; }
   .doc .doc-fig > :is(svg, img) { display: block; width: auto; max-width: 100%; height: auto; max-height: 45rem; margin: 0 auto; border-radius: .5rem; background: #fff; color: #1f2328; fill: initial; }
   .doc-fig :where(figcaption) { @apply mt-2 text-center text-sm; opacity: .7; }
+  /* in prose a figure starts where the text does and is no wider than it: centred on the page it would stand beside
+     the lines, and a drawing with only a viewBox would grow to the page's width */
+  .doc-prose .doc-fig > :is(svg, img) { margin-left: 0; max-width: min(100%, 46em); }
+  .doc-prose .doc-fig :where(figcaption) { text-align: left; }
   /* a book's chapters: the one before, the contents, the one after */
   .doc-book { @apply flex flex-wrap justify-between gap-x-4 gap-y-2 border-y py-3 text-sm; border-color: var(--color-base-300); }
 }

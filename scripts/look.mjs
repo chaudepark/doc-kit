@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Pictures of a kit page as a reader sees it, at desktop and phone width.
 //   node scripts/look.mjs <page.html> <out dir>      → <out dir>/<width>-<view>.png
-// Views: everything on one page (#all), the same with every <details> open, the same as one column of prose
+// Views: everything on one page (#all), the same with every <details> open, the same as prose read in order
 // (what a page from Markdown gets), the home, and each screen by itself (the one-screen-at-a-time mode).
 // Two runs on the same machine give the same bytes for the same look, so comparing the two folders answers
 // "does the page look the same after this change?" (the kit workflow asks it for every dependency update).

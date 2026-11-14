@@ -98,10 +98,12 @@ In this skill's directory:
 
 ## Make a page
 
-1. Write the body only (what goes inside `<main>`), from the parts below.
-2. `python3 scripts/dockit wrap body.html -o page.html --title "…" [--css own.css] [--prose] [--lang en]`
-   One self-contained file: it opens from `file://`, offline, on a phone. The page's language is read from the
-   body's prose (kana outside `<pre>` and `<code>`: `ja`, otherwise `en`) unless `--lang` says it; write the page in the reader's language.
+1. Write the body only (what goes inside `<main>`), from the parts below. It has one `<h1>`, which is also the
+   page's title. What the page adds to the kit (below) is a `<style>` at the top of the body.
+2. `python3 scripts/dockit wrap body.html -o page.html`
+   One self-contained file: it opens from `file://`, offline, on a phone. Nothing is chosen here. The page's
+   language is read from the body's prose (more than one in ten of its letters is kana or kanji, counted against the Latin
+   alphabet, outside `<pre>` and `<code>`: `ja`, otherwise `en`), and a body without a `<section>` is set as prose (`doc-prose`); write the page in the reader's language.
 3. `python3 scripts/dockit check page.html`. Fix what it names; do not ship a page that fails.
    (Inside a `doc-fig` figure the classes need no definition and `style=` is let be: they are the drawing
    tool's. A kit part's name on a picture and a fetch are refused there too.)
@@ -137,14 +139,14 @@ page's words with the second, and fails a Japanese page it could not read).
 | Labels | `badge` with `badge-neutral`, `badge-ghost`, `badge-outline` or `badge-soft badge-primary` |
 | A screen's abstract | after the screen's `<h2>` and before its detail (the first `<h3>`, table, folded part, numbered steps `<ol>` or `doc-vals`): a `doc-how` line (where, and what to set), with the before → after and one line of what comes out; a screen that only lists things opens with a `doc-lede` sentence instead. It answers the screen's wish by itself, as a paper's abstract does. `check` holds that it is there, says something and is short (at most 400 full-width or 800 Latin characters, so a screen with no `<h3>` at all is short as a whole); whether it answers the wish, the read finds out. What follows is detail, under `<h3>` |
 | One screen at a time | home in `doc-home`, each screen a `<section class="doc-view" id="…">` with a way back (`btn btn-ghost btn-sm`); `#all` shows everything. A card that opens a screen and that screen's `<h2>` say the same words (`check` compares them) |
-| A page that is prose (from Markdown) | `<main class="doc doc-prose">` (`dockit wrap --prose`), or a `doc-prose` section: one column; bare `<h2>`, `<p>`, lists, `<a>`, `<pre><code>`, `<blockquote>`, `<details>`, `<hr>` |
+| A page that is prose (from Markdown) | `<main class="doc doc-prose">` (`dockit wrap` sets it when the body has no `<section>`), or a `doc-prose` section: text read in order, as wide as any page (a paragraph's lines are held to 46em, a table or code is not); bare `<h2>`, `<p>`, lists, `<a>`, `<pre><code>`, `<blockquote>`, `<details>`, `<hr>` |
 | A figure made elsewhere (Mermaid, D2, a chart, a screenshot) | `<figure class="doc-fig">` > `<svg>` or `<img>` + `<figcaption>`: it keeps the white ground it was drawn for |
 | A book's chapters | `<nav class="doc-book">`: the one before, the contents, the one after |
 | In a picture | `doc-bg` (its ground), `doc-hi` (what changed), `doc-dim` (what is only context) |
 
 ## What a page may add
 
-Only what belongs to the tool it documents, in its own CSS (`--css`):
+Only what belongs to the tool it documents, in its own CSS (a `<style>` at the top of the body):
 
 - the tool's colours (a track's Role, a signal's kind) and how its pictures are painted;
 - `--doc-hi` on `.doc`, the colour of what changed in a picture, when the tool's colours are near the kit's primary

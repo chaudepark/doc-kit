@@ -54,7 +54,7 @@ Claude Code の中からは `/plugin marketplace add chaudepark/doc-kit` と `/p
 - **検査**：`dockit check` が、どのスタイルも定義していないクラス（kit にあるのは見本が使うものだけ）、`style=` の属性、古い `kit.css`、部品と同じ名前の絵のクラス、カードと着いた画面で違う見出し、短い Abstract で始まらない画面、ファイルの外から何かを取ってくる書き方を止めます。
 - **渡す前に読ませる**：`first-reader` の模擬読者が、どのページも先に読みます（マニュアルは、使う人が持ってくる「やりたいこと」で探させる。手順は `skills/first-reader/references/lookup.md`。文章は頭から読ませる。本は、最初の章と演習の章）。つまずいた所は、渡す前に直します。省くのは、前に読ませたときと言葉が同じとき（見た目だけの直し、kit の作り直し）だけです。この読みは欠陥を探すもので、ページが読みやすいことを示すものではありません。
 - **1 ファイル**：できたページは、オフラインでもスマホでも開けます。使う側のリポジトリに Node もビルドも要りません（`dockit` は Python 3.9 の標準ライブラリだけ。絵を撮るには Chromium 系のブラウザが要ります）。
-- **言語を問わない**：ページの言語は本文から決まります（地の文にかながあれば日本語、なければ英語。コードは数えません）。`--lang` でも指定できます。フォントは、Mac・Windows・Linux に元からある欧文と日本語の書体です。
+- **言語を問わない**：ページの言語は本文から決まります（地の文のかな・漢字・アルファベットのうち、かなと漢字が1割より多ければ日本語、ほかは英語。コードは数えません）。指定するフラグはありません。フォントは、Mac・Windows・Linux に元からある欧文と日本語の書体です。
 
 部品を足すのは、ページの上ではなく、このリポジトリの見本です。足す前に、持ち主に聞く決まりにしています（部品が少ないことが目的なので）。
 
@@ -88,10 +88,10 @@ Claude Code の中からは `/plugin marketplace add chaudepark/doc-kit` と `/p
 | 形 | 向いているもの | 作り方 |
 |---|---|---|
 | 広いページ（カードと絵） | マニュアル、早見表。画面を 1 つずつ出す | 本文を書いて `dockit wrap` |
-| 本文のページ（1 段組） | 説明、報告、本の章。Markdown から | `explainer` の `build-html.mjs`、または `dockit wrap --prose` |
+| 本文のページ（順に読む） | 説明、報告、本の章。Markdown から | `explainer` の `build-html.mjs`、または `dockit wrap`（本体に `<section>` が無いとき） |
 
 ```sh
-python3 skills/doc-kit/scripts/dockit wrap body.html -o page.html --title "題名" [--css own.css] [--prose] [--lang ja]
+python3 skills/doc-kit/scripts/dockit wrap body.html -o page.html
 python3 skills/doc-kit/scripts/dockit check page.html
 node skills/explainer/scripts/build-html.mjs docs/<topic>/README.md     # → docs/<topic>/dist/index.html
 ```

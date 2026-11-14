@@ -31,11 +31,18 @@ const htmlName = (md) => (basename(md) === 'README.md' ? 'index.html' : basename
 const titleOf = (src) => src.match(/^# (.+)$/m)?.[1] ?? 'Explainer';
 const sources = pages.map((p) => readFileSync(p, 'utf8'));
 const book = pages.length > 1;
-// the page's language, read from its prose: kana means Japanese, anything else is set as English.
-// Code is not prose: an English page that quotes a tool's Japanese output stays English.
-const ja = (src) => /[\u3040-\u30ff]/.test(src
-  .replace(/^ {0,3}(`{3,}|~{3,})[^\n]*\n[\s\S]*?^ {0,3}\1[`~]*[ \t]*$/gm, '') // a fence opens and closes at a line's start
-  .replace(/`[^`\n]*`/g, ''));
+// the page's language, read from the built page's prose by dockit's rule (the same expressions): Japanese when more
+// than one in ten of its letters (kana, kanji, the Latin alphabet) is kana or kanji. Code is not prose, a link's
+// address and an entity's name are not letters, and an English page that quotes a line of Japanese stays English.
+const read = new Map();
+const ja = (src) => {
+  if (!read.has(src)) {
+    const prose = render(src).replace(/<!--[\s\S]*?-->|<(style|script|pre|code)\b[\s\S]*?<\/\1>|<[^>]*>|&#?[0-9a-z]+;/gi, ' ');
+    const ours = prose.match(/[\u3040-\u30ff\u4e00-\u9fff]/g)?.length ?? 0;
+    read.set(src, ours * 10 > ours + (prose.match(/[A-Za-z]/g)?.length ?? 0));
+  }
+  return read.get(src);
+};
 const mdNames = new Set(pages.map((p) => basename(p)));
 
 function render(src) {
@@ -83,7 +90,8 @@ function nav(i) {
   return `<nav class="doc-book" aria-label="${ja(sources[i]) ? '章の移動' : 'Chapters'}">${prev}${toc}${next}</nav>`;
 }
 
-// The look is doc-kit's (the skill beside this one): its kit.css inlined, the body in <main class="doc doc-prose">.
+// The look is doc-kit's (the skill beside this one): its kit.css inlined, the body in <main class="doc doc-prose">
+// (a page from Markdown is prose, whatever a figure in it holds).
 // No CSS of this script's own: a part that is missing goes into the kit, not here.
 const KIT = readFileSync(new URL('../../doc-kit/kit.css', import.meta.url), 'utf8').trim();
 

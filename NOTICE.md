@@ -18,7 +18,7 @@ Changed here:
   `doc-prose`, figures as `doc-fig`, tables as daisyUI `table`).
 - `skills/explainer/scripts/figure-check.mjs`: its sheet also defines doc-kit's colour names.
 - `skills/explainer/references/figures.md`: HTML figures use doc-kit's colour names.
-- `skills/explainer/scripts/build-html.mjs` also sets the page's language from its text (`ja` with kana, else `en`).
+- `skills/explainer/scripts/build-html.mjs` also sets the page's language from its text (by `dockit`'s rule: `ja` when more than one in ten of its letters is kana or kanji, else `en`).
 - `tests/figure-check/run.mjs`: the Mermaid cases render afresh on a copy (a committed Mermaid SVG is byte-equal
   only on the OS it was rendered on).
 - `scripts/setup-d2.sh`: picks the download for this OS and CPU and verifies the release's checksum;

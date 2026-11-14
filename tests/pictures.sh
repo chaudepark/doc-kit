@@ -35,7 +35,7 @@ grep -q '11 pictures: 10 read as what they are, 1 not, 0 without an answer' "$tm
 # a label over two lines stays one line of the key; a directory of the user's that is named quiz-… is left alone
 printf '%s' '<div class="doc-cards"><div class="card"><figure><svg viewBox="0 0 10 10"><rect width="3" height="3"/></svg></figure><div class="card-body"><h3 class="card-title">Load a file</h3></div></div><div class="card"><figure><svg viewBox="0 0 10 10"><rect width="6" height="6"/></svg></figure><div class="card-body"><h3 class="card-title">Press play</h3></div></div><div class="card"><figure><svg viewBox="0 0 10 10" aria-label="the
   result"><rect width="9" height="9"/></svg></figure><div class="card-body"><h3 class="card-title">Hear it</h3></div></div></div><div class="doc-vals"><figure class="doc-pic"><svg viewBox="0 0 10 10"><rect width="3" height="3"/></svg><figcaption>a small square</figcaption></figure></div>' > "$tmp/body.html"
-python3 $dockit wrap "$tmp/body.html" -o "$tmp/flow.html" --title flow 2>/dev/null
+{ printf '<h1>t</h1>'; cat "$tmp/body.html"; } > "$tmp/whole.html"; python3 $dockit wrap "$tmp/whole.html" -o "$tmp/flow.html" 2>/dev/null
 mkdir -p "$tmp/flow/quiz-notes" && echo mine > "$tmp/flow/quiz-notes/a.md"
 DOCKIT_BROWSER="$tmp/browser" python3 $dockit pictures "$tmp/flow.html" -o "$tmp/flow" >/dev/null
 DOCKIT_BROWSER="$tmp/browser" python3 $dockit pictures "$tmp/flow.html" -o "$tmp/flow" > "$tmp/out2"
@@ -51,7 +51,7 @@ now='<svg viewBox="0 0 10 10"><rect width="2" height="2"/></svg>'
 card() { printf '<a class="card" href="#v"><div class="card-body"><h3 class="card-title">%s</h3><div class="doc-ba"><div>%s</div><span class="doc-to">to</span><div><svg viewBox="0 0 10 10"><rect width="%s" height="2"/></svg></div></div></div></a>' "$1" "$now" "$2"; }
 { printf '<div class="doc-cards-2">'; card "move the bass" 4; card "hold the bass" 6; card "double the bass" 8; printf '</div>'
   printf '<section class="doc-view" id="v"><h2>Bass</h2><p class="doc-how">Set Bass.</p><div class="doc-vals"><figure class="doc-pic"><svg viewBox="0 0 10 10"><rect width="4" height="2"/></svg><figcaption>approach one note before</figcaption></figure><figure class="doc-pic"><svg viewBox="0 0 10 10"><rect width="9" height="2"/></svg><figcaption>root stays</figcaption></figure></div></section>'; } > "$tmp/body.html"
-python3 $dockit wrap "$tmp/body.html" -o "$tmp/cards.html" --title cards 2>/dev/null
+{ printf '<h1>t</h1>'; cat "$tmp/body.html"; } > "$tmp/whole.html"; python3 $dockit wrap "$tmp/whole.html" -o "$tmp/cards.html" 2>/dev/null
 DOCKIT_BROWSER="$tmp/browser" python3 $dockit pictures "$tmp/cards.html" -o "$tmp/cards" >/dev/null
 [ "$(wc -l < "$tmp/cards/key.tsv")" -eq 5 ] || { echo "dockit pictures: a wish card's picture is left out" >&2; cat "$tmp/cards/key.tsv" >&2; exit 1; }
 lines_of() { awk -v words="$1" 'BEGIN { RS = "## " } index($0, words) && !done { print; done = 1 }' "$tmp/cards"/quiz-*/quiz.md; }

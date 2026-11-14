@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """dockit: make a document page with the kit's look, and check a page against the kit.
 
-  dockit wrap <body.html> -o <page.html> --title <title> [--css <own.css>] [--prose] [--lang en]
-      One self-contained file: kit.css inlined, the body inside <main class="doc" id="all">
-      (--prose: one column to read, for a body that came from Markdown).
+  dockit wrap <body.html> -o <page.html> 
+      One self-contained file: kit.css inlined, the body inside <main class="doc" id="all">. Nothing is chosen:
+      the title is the body's <h1>, a body without a <section> is prose to read in order (doc-prose), the language
+      is read from the text, and what the page adds to the kit is a <style> in the body.
   dockit text <page.html>
       The page as the text a reader meets, headings marked with #: what the first-reader skill reads.
   dockit lookup <page.html> -o <dir>
@@ -47,9 +48,20 @@ LINT = KIT.parent.parent / "yomiyasu" / "scripts" / "yomiyasu_lint.py"  # the pl
 # one tag's attributes, for lookup; check reads a whole page with _Page
 CLASS = re.compile(r"""\bclass\s*=\s*(?:"([^"]*)"|'([^']*)')""")
 SELECTOR = re.compile(r"\.(-?[A-Za-z_](?:[\w-]|\\.)*)")
-KANA = re.compile("[\u3040-\u30ff]")
-# the page's language is read from its prose: an English page that quotes Japanese output stays English
-PROSE = re.compile(r"<(pre|code)\b.*?</\1>", re.S)
+# the page's language is read from its prose (never passed in): Japanese when more than one in ten of its letters
+# (kana, kanji and the Latin alphabet) is kana or kanji. Code is not prose, an entity's name is not a letter, and an
+# English page that shows a line of Japanese stays English. explainer's build-html.mjs holds the same rule.
+PROSE = re.compile(r"(?is)<!--.*?-->|<(style|script|pre|code)\b.*?</\1>|<[^>]*>|&#?[0-9a-z]+;")
+OURS = re.compile("[\u3040-\u30ff\u4e00-\u9fff]")
+LATIN = re.compile("[A-Za-z]")
+
+
+def japanese(markup):
+    prose = PROSE.sub(" ", markup)
+    ours = len(OURS.findall(prose))
+    return ours * 10 > ours + len(LATIN.findall(prose))
+
+
 QUOTED = r""""(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'"""
 URL = re.compile(r"""(?is)url\(\s*(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|([^)]*))\s*(?:\)|\Z)""")
 # what in a CSS text is neither a selector nor a rule to read: a comment, an @namespace (its url() is a name,
@@ -120,7 +132,7 @@ class _Page(html.parser.HTMLParser):
         self.cards, self.screens = [], {}  # (the screen a card opens, the card's heading); screen: its heading
         self.made = self.svg = 0  # how deep inside a figure made elsewhere (doc-fig), inside an <svg>
         self.sections, self.link, self.grab, self.in_style = [], None, None, False
-        self.lang = self.prose = None  # what <html lang> says; whether <main> is one column of prose
+        self.lang = self.prose = None  # what <html lang> says; whether <main> is prose, read in order
         # one for each open <section>: [the screen's id or None, headed, has an abstract, detail began, the abstract's width]
         self.opening = []
         self.bare, self.long = [], []  # screens with no abstract; with one longer than an abstract
@@ -794,16 +806,21 @@ def grade(args):
 
 def wrap(args):
     body = pathlib.Path(args.body).read_text(encoding="utf-8")
-    own = "<style>%s</style>\n" % pathlib.Path(args.css).read_text(encoding="utf-8").strip() if args.css else ""
-    if "</style" in own[7:-9].lower():
-        sys.exit("dockit wrap: %s holds </style, which would end the page's style block there" % args.css)
-    lang = args.lang or ("ja" if KANA.search(PROSE.sub("", body)) else "en")
+    bare = re.sub(r"(?is)<!--.*?-->|<(style|script|svg)\b.*?</\1>", " ", body)
+    # the title is the page's own <h1>: nobody words it twice
+    h1 = re.search(r"(?is)<h1\b[^>]*>(.*?)</h1>", bare)
+    title = text(h1.group(1)) if h1 else ""
+    if not title:
+        sys.exit("dockit wrap: %s has no <h1> with words in it; a page's title is its <h1>" % args.body)
+    lang = "ja" if japanese(body) else "en"
+    # a body in sections is a page of screens or parts; one without is a text read in order (from Markdown)
+    prose = not re.search(r"(?i)<section\b", bare)
     page = (
         '<!doctype html>\n<html lang="%s"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1"><title>%s</title>\n'
-        "<style data-doc-kit>%s</style>\n%s</head>\n<body>\n<main class=\"doc%s\" id=\"all\">\n%s\n</main>\n</body></html>\n"
-    ) % (html.escape(lang), html.escape(args.title), KIT.read_text(encoding="utf-8").strip(), own,
-         " doc-prose" if args.prose else "", body.strip())
+        "<style data-doc-kit>%s</style>\n</head>\n<body>\n<main class=\"doc%s\" id=\"all\">\n%s\n</main>\n</body></html>\n"
+    ) % (html.escape(lang), html.escape(title), KIT.read_text(encoding="utf-8").strip(),
+         " doc-prose" if prose else "", body.strip())
     pathlib.Path(args.out).write_text(page, encoding="utf-8")
     # the steps that follow are not optional, and the one who made the page is the one who forgets them
     print("wrote %s. Next, without being asked: dockit check; look at it at desktop and phone width; "
@@ -862,8 +879,7 @@ def words(path, page, seen):
     """A Japanese page's words, read by the bundled yomiyasu lint. Nobody picks whether, or as what kind of text:
     the page's language and shape say. The places it names do not fail the page; a page it could not read does
     (returns False): a line in a passing build is overlooked."""
-    prose = text(re.sub(r"(?s)<!--.*?-->|<(style|script|pre|code)\b.*?</\1>", " ", page))
-    if not (seen.lang.lower().startswith("ja") if seen.lang else KANA.search(prose)):
+    if not (seen.lang.lower().startswith("ja") if seen.lang else japanese(page)):
         return True
     kind = "article" if seen.prose else "manual"
     why = None
@@ -907,10 +923,6 @@ def main():
     w = sub.add_parser("wrap")
     w.add_argument("body")
     w.add_argument("-o", "--out", required=True)
-    w.add_argument("--title", required=True)
-    w.add_argument("--css")
-    w.add_argument("--prose", action="store_true")
-    w.add_argument("--lang", help="the page's language; without it, ja when the body has kana outside <pre> and <code>, else en")
     w.set_defaults(run=wrap)
     c = sub.add_parser("check")
     c.add_argument("pages", nargs="+")
