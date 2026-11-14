@@ -32,7 +32,7 @@ printf '<div class="doc-home"><a class="card" href="#bass"><h3 class="card-title
 python3 $dockit wrap "$tmp/body.html" -o "$tmp/names.html" --title names
 python3 $dockit check "$tmp/names.html" 2>"$tmp/err" && { echo "check passed a card and a screen in different words" >&2; exit 1; }
 grep -q 'Bass motion' "$tmp/err"
-printf '<div class="doc-home"><a class="card" href="#bass"><h3 class="card-title">move the bass</h3></a></div><section class="doc-view" id="bass"><h2>move the bass</h2></section>' > "$tmp/body.html"
+printf '<div class="doc-home"><a class="card" href="#bass"><h3 class="card-title">move the bass</h3></a></div><section class="doc-view" id="bass"><h2>move the bass</h2><p class="doc-how">set Bass</p></section>' > "$tmp/body.html"
 python3 $dockit wrap "$tmp/body.html" -o "$tmp/names.html" --title names
 python3 $dockit check "$tmp/names.html"
 # a figure made elsewhere keeps its tool's classes
@@ -100,6 +100,17 @@ refuses "a pair after a heading closed by the wrong tag" '<div class="doc-home">
 # a made figure keeps its classes and styles, but not a kit part's name, and not a fetch
 refuses "a kit part's name inside a made figure" '<figure class="doc-fig"><svg><g class="btn"/></svg></figure>' 'btn'
 refuses "a fetch inside a made figure" '<figure class="doc-fig"><svg><g style="fill:url(g.svg#a)"/></svg></figure>' 'url('
+# a screen opens with its abstract, and an abstract is short
+refuses "a screen without an abstract" '<section class="doc-view" id="bare"><h2>One</h2><h3>Detail</h3><p class="doc-how">too late</p></section>' 'without its abstract.*bare'
+refuses "an abstract that is a heading line, not an abstract" '<section class="doc-view" id="head"><div class="doc-how"><h2>One</h2></div><p>words</p></section>' 'without its abstract.*head'
+long=$(printf 'word %.0s' $(seq 1 250))
+refuses "an abstract longer than an abstract" "<section class=\"doc-view\" id=\"long\"><h2>One</h2><p class=\"doc-how\">set it</p><p>$long</p></section>" 'longer than an abstract.*long'
+refuses "an abstract with nothing in it" '<section class="doc-view" id="mute"><h2>One</h2><p class="doc-how"></p><table class="table"><tr><td>x</td></tr></table></section>' 'without its abstract.*mute'
+refuses "a screen never closed, without an abstract" '<section class="doc-view" id="open"><h2>One</h2><h3>Detail</h3>' 'without its abstract.*open'
+wide=$(printf '\343\201\202%.0s' $(seq 1 401))
+refuses "an abstract of 401 full-width characters" "<section class=\"doc-view\" id=\"wide\"><h2>One</h2><p class=\"doc-how\">$wide</p></section>" 'longer than an abstract.*wide'
+passes "a folded part before the heading, then the abstract" '<section class="doc-view" id="early"><details class="collapse"><summary class="collapse-title">x</summary><div class="collapse-content">y</div></details><h2>One</h2><p class="doc-how">Set it.</p></section>'
+passes "a short abstract, and long detail after it" "<section class=\"doc-view\" id=\"fine\"><h2>One</h2><p class=\"doc-lede\">Set it, and this comes out.</p><h3>Detail</h3><p>$long</p></section>"
 # own CSS that would end the style block early is not wrapped
 printf 'p{}</STYLE><p>spill</p>' > "$tmp/spill.css"
 if python3 $dockit wrap "$tmp/body.html" -o "$tmp/spill.html" --title spill --css "$tmp/spill.css" 2>"$tmp/err"; then echo "wrap took CSS that ends its own style block" >&2; exit 1; fi
@@ -120,6 +131,17 @@ if grep -q 'Long steps and a glossary\|The value.s name, and what happens' "$tmp
 grep -q '^## Values side by side$' "$tmp/lookup/screen-values.txt" && grep -q "^hold: The value's name" "$tmp/lookup/screen-values.txt" || { echo "dockit lookup: a screen's text is missing" >&2; exit 1; }
 grep -q "^Values side by side$(printf '\t')screen-values.txt$(printf '\t')screen$" "$tmp/lookup/index.txt" || { echo "dockit lookup: the index does not lead from a heading to its file" >&2; exit 1; }
 grep -q '^### \[1\] Prepare$' "$tmp/sample.txt" || { echo "dockit text: a badge stuck to the word after it" >&2; exit 1; }
+grep -q 'whole answer in a line or two' "$tmp/lookup/abstract-values.txt" || { echo "dockit lookup: a screen's abstract is missing" >&2; exit 1; }
+if grep -q "The value.s name" "$tmp/lookup/abstract-values.txt"; then echo "dockit lookup: a screen's abstract runs into its detail" >&2; exit 1; fi
+# the mark is the same for the same page, and another when a word or a picture changes
+mark() { python3 $dockit lookup "$1" -o "$tmp/marked" | sed -n 's/^mark //p'; }
+printf '<body><h2>One</h2><p>word</p><svg><rect width="1"/></svg></body>' > "$tmp/m1.html"
+printf '<body><h2>One</h2><p>words</p><svg><rect width="1"/></svg></body>' > "$tmp/m2.html"
+printf '<body><h2>One</h2><p>word</p><svg><rect width="2"/></svg></body>' > "$tmp/m3.html"
+mark_of=$(mark "$tmp/m1.html")
+[ ${#mark_of} -eq 12 ] && [ "$mark_of" = "$(mark "$tmp/m1.html")" ] && [ "$mark_of" != "$(mark "$tmp/m2.html")" ] && [ "$mark_of" != "$(mark "$tmp/m3.html")" ] \
+  || { echo "dockit lookup: the mark does not follow the page's words and pictures" >&2; exit 1; }
+grep -q "$(printf 'link on the home')" "$tmp/lookup/index.txt" || { echo "dockit lookup: a link on the home has no row in the index" >&2; exit 1; }
 grep -q 'Long steps and a glossary' "$tmp/lookup/fold-1.txt" || { echo "dockit lookup: what a folded part holds was written nowhere" >&2; exit 1; }
 # the shapes the sample does not have: a screen ends at its own </section> (the footer stays on the home), single
 # quotes, a contents list, a part that is open, a card's before-and-after left out at a glance
@@ -159,11 +181,30 @@ grep -q 'yomiyasu lint as: manual' "$tmp/words.out" || { echo "check did not rea
 # where the output cannot show Japanese, the page still passes and is still read
 PYTHONIOENCODING=ascii python3 $dockit check "$tmp/lang.html" > "$tmp/words.out" || { echo "an output that cannot show Japanese failed a page" >&2; exit 1; }
 [ "$(grep -c manual "$tmp/words.out")" -ge 2 ] || { echo "the lint's list was lost where the output cannot show Japanese" >&2; exit 1; }
+# a dockit taken without skills/yomiyasu beside it fails a Japanese page (its words were not read), and says why
+mkdir -p "$tmp/pinned/skills/doc-kit/scripts"
+cp skills/doc-kit/kit.css "$tmp/pinned/skills/doc-kit/" && cp $dockit "$tmp/pinned/skills/doc-kit/scripts/"
+if python3 "$tmp/pinned/skills/doc-kit/scripts/dockit" check "$tmp/lang.html" 2>"$tmp/err"; then echo "a Japanese page nobody read passed" >&2; exit 1; fi
+grep -q 'not read by the yomiyasu lint' "$tmp/err" || { echo "check failed a Japanese page without saying its words were not read" >&2; cat "$tmp/err" >&2; exit 1; }
 # NOTICE.md names the commit the copy says it is; the lint answers
 test -s skills/yomiyasu/FROM || { echo "skills/yomiyasu/FROM is missing or empty" >&2; exit 1; }
 grep -q "$(cat skills/yomiyasu/FROM)" NOTICE.md || { echo "NOTICE.md does not name the commit skills/yomiyasu was taken at" >&2; exit 1; }
 python3 -I skills/yomiyasu/scripts/yomiyasu_lint.py --json < docs/figure-cheatsheet/README.ja.md > "$tmp/lint.json"
 grep -q '"findings"' "$tmp/lint.json" || { echo "the bundled yomiyasu lint did not answer" >&2; exit 1; }
+# what the pictures' readers chose, against the key: the miss is named with what it is and what it was read as
+mkdir -p "$tmp/graded/quiz-1"
+printf '001\tA\tone bar\n002\tB\ttwo bars\n003\tA\tthree bars\n' > "$tmp/graded/key.tsv"
+printf '## 001  x/pic-001.png\n\nA. one bar\nB. two bars\n\n## 002  x/pic-002.png\n\nA. one bar\nB. two bars\n' > "$tmp/graded/quiz-1/quiz.md"
+: > "$tmp/graded/quiz-1/pic-002.png"
+: > "$tmp/graded/quiz-1/pic-001.png"
+mkdir -p "$tmp/graded/quiz-2" && : > "$tmp/graded/quiz-2/pic-003.png" && : > "$tmp/graded/quiz-2/quiz.md"
+# lines of number and letter alone, one after the other; a line that names no letter; a second reader who counts from 1
+printf '001 A\n**002** A - a single bar\n' > "$tmp/graded/quiz-1/answers.txt"
+printf '1 B: its own first, miscounted\n003: a rising line, nothing else\n' > "$tmp/graded/quiz-2/answers.txt"
+python3 $dockit grade "$tmp/graded" > "$tmp/graded.out"
+grep -q '3 pictures: 1 read as what they are, 1 not, 1 without an answer' "$tmp/graded.out" && grep -q 'is:      two bars' "$tmp/graded.out" && grep -q 'read as: one bar' "$tmp/graded.out" && grep -q 'without an answer: 003' "$tmp/graded.out" \
+  && [ "$(grep -c '^  quiz-2: ' "$tmp/graded.out")" -eq 2 ] \
+  || { echo "dockit grade: wrong count, a miss not named, or an odd line taken for an answer" >&2; cat "$tmp/graded.out" >&2; exit 1; }
 # the imported skills: their own tests that need no browser and no d2
 node --test tests/d2/*.test.mjs >"$tmp/d2.log" 2>&1 || { tail -20 "$tmp/d2.log" >&2; exit 1; }
 python3 tests/first-reader/test_cjk.py >/dev/null

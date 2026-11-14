@@ -8,27 +8,39 @@
       The page as the text a reader meets, headings marked with #: what the first-reader skill reads.
   dockit lookup <page.html> -o <dir>
       For a read by lookup (the first-reader skill's references/lookup.md): <dir>/home.txt is what a reader sees
-      before pressing anything, <dir>/screen-<name>.txt and fold-<n>.txt what a press opens, index.txt which is which.
+      before pressing anything, <dir>/screen-<name>.txt and fold-<n>.txt what a press opens (abstract-<name>.txt:
+      that screen's abstract alone), index.txt which is which.
+  dockit pictures <page.html> -o <dir>
+      Each picture alone in a file (a Chromium-family browser takes them), in quizzes of twenty at most: for each,
+      its own line and its neighbours' to choose from. One fresh reader a quiz, who is not shown those neighbours; then
+  dockit grade <dir>
+      says which pictures were not read as what they are.
   dockit classes <page.html>
       The classes the page uses, one a line (the kit's own build reads its sample this way).
   dockit check <page.html> [...]
       Fails when a page uses a class no style defines or a style= attribute (outside a doc-fig figure),
       carries an old kit.css, names a picture's class like a kit part, heads a screen in other words than
-      the card that opens it, or would fetch what is not in the file (a src, a srcset, a frame, a link, an
+      the card that opens it, opens a screen without a short abstract, or would fetch what is not in the file (a src, a srcset, a frame, a link, an
       @import, a url(), a refresh). It reads well-formed markup and plainly written CSS, not what a script
       does when it runs: a check on a page written in good faith, not a wall.
       A page in Japanese also has its words read by the yomiyasu skill's lint (in the same plugin): the places
-      to rewrite are printed, and do not fail the page.
+      to rewrite are printed, and do not fail the page; a Japanese page the lint could not read fails.
 
 Python 3.9+, standard library only (it runs on a new machine before anything is installed).
 """
 import argparse
+import concurrent.futures
+import hashlib
 import html
 import html.parser
+import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
+import zlib
 
 KIT = pathlib.Path(__file__).resolve().parent.parent / "kit.css"
 LINT = KIT.parent.parent / "yomiyasu" / "scripts" / "yomiyasu_lint.py"  # the plugin's copy of the yomiyasu skill
@@ -43,6 +55,8 @@ URL = re.compile(r"""(?is)url\(\s*(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|([^
 # what in a CSS text is neither a selector nor a rule to read: a comment, an @namespace (its url() is a name,
 # nothing is fetched), a url(...) (kept apart, as group 1), a string
 CSS_SKIP = re.compile(r"(?is)/\*.*?\*/|@namespace\b(?:%s|[^;])*;|(url\(\s*(?:%s|[^)]*)\s*(?:\)|\Z))|%s" % (QUOTED, QUOTED, QUOTED))
+# an abstract is short by rule, as a paper's is: 400 full-width characters, or 800 of the Latin kind
+ABSTRACT = 800
 SPACE = re.compile(r"[ \t\n\f\r]+")  # what separates class names for a browser (not every Unicode space)
 
 
@@ -107,6 +121,10 @@ class _Page(html.parser.HTMLParser):
         self.made = self.svg = 0  # how deep inside a figure made elsewhere (doc-fig), inside an <svg>
         self.sections, self.link, self.grab, self.in_style = [], None, None, False
         self.lang = self.prose = None  # what <html lang> says; whether <main> is one column of prose
+        # one for each open <section>: [the screen's id or None, headed, has an abstract, detail began, the abstract's width]
+        self.opening = []
+        self.bare, self.long = [], []  # screens with no abstract; with one longer than an abstract
+        self.abstract, self.script = None, False  # the open doc-how or doc-lede of a screen: [tag, depth]; inside a <script>
 
     def at(self, what):
         return "%s (line %d)" % (what, self.getpos()[0])
@@ -143,11 +161,23 @@ class _Page(html.parser.HTMLParser):
             self.loads.append(self.at("<%s>" % tag))
         elif tag == "meta" and (attrs.get("http-equiv") or "").lower() == "refresh":
             self.loads.append(self.at("<meta http-equiv=refresh>"))
+        screen = next((entry for entry in reversed(self.opening) if entry[0]), None)
+        if screen and tag != "section":
+            if self.abstract and tag == self.abstract[0]:
+                self.abstract[1] += 1
+            if tag == "h2":
+                screen[1] = True
+            elif screen[1] and not screen[3] and not self.abstract and ("doc-how" in classes or "doc-lede" in classes):
+                self.abstract = [tag, 1]  # it is the abstract once it says something (handle_data)
+            elif screen[1] and (tag in ("h3", "table", "details") or "doc-vals" in classes):
+                screen[3] = True
+        self.script = self.script or tag == "script"
         if tag == "style":
             self.styles.append(["data-doc-kit" in attrs, ""])
             self.in_style = True
         elif tag == "section":
             self.sections.append(attrs.get("id") if "doc-view" in classes else None)
+            self.opening.append([self.sections[-1], False, False, False, 0])
         elif tag == "a":
             to = attrs.get("href") or ""
             self.link = to[1:] if to.startswith("#") else None
@@ -170,14 +200,26 @@ class _Page(html.parser.HTMLParser):
                 else:
                     screens[name] = words
                 self.grab = None
+        if self.abstract and tag == self.abstract[0]:
+            self.abstract[1] -= 1
+            if not self.abstract[1]:
+                self.abstract = None
         if tag == "style":
             self.in_style = False
+        elif tag == "script":
+            self.script = False
         elif tag == "figure":
             self.made = max(0, self.made - 1)
         elif tag == "svg":
             self.svg = max(0, self.svg - 1)
         elif tag == "section" and self.sections:
             self.sections.pop()
+            self.abstract = None
+            name, _, abstract, _, width = self.opening.pop()
+            if name and not abstract:
+                self.bare.append(name)
+            elif name and width > ABSTRACT:
+                self.long.append("%s (%d)" % (name, width))
         elif tag == "a":
             self.link = None
 
@@ -186,12 +228,20 @@ class _Page(html.parser.HTMLParser):
             self.styles[-1][1] += data
         elif self.grab:
             self.grab[2].append(data)
+        elif not self.svg and not self.script:
+            # the words between a screen's heading and its detail are its abstract
+            screen = next((entry for entry in reversed(self.opening) if entry[0]), None)
+            if screen and screen[1] and not screen[3]:
+                screen[4] += sum(2 if letter > "\u2e7f" else 1 for letter in "".join(data.split()))
+                screen[2] = screen[2] or bool(self.abstract and data.strip())
 
 
 def read(page):
     seen = _Page()
     seen.feed(page)
     seen.close()
+    while seen.sections:  # a screen whose </section> is missing is still held to its abstract
+        seen.handle_endtag("section")
     return seen
 
 
@@ -377,6 +427,8 @@ def page_text(markup, glance=False):
 
 
 SECTION = re.compile(r"<section\b([^>]*)>|</section\s*>", re.I)
+# where a screen's detail begins: the same places check knows (_Page)
+DETAIL = re.compile(r"""(?i)<(?:h3|table|details)\b|<\w+\b[^>]*\bclass\s*=\s*["']?[^"'>]*\bdoc-vals\b""")
 ID = re.compile(r"""(?<![\w-])id\s*=\s*(?:"([^"]*)"|'([^']*)')""")
 # shortcut: a fold inside a fold is taken as one fold; read them with an HTML parser if pages start nesting them
 FOLD = re.compile(r"(?s)<details\b(?![^>]*\sopen\b)[^>]*>(.*?)</details>")
@@ -403,7 +455,7 @@ def lookup(args):
     page = re.sub(r"(?s)^.*?<body[^>]*>", "", page, count=1)
     out = pathlib.Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    for stale in list(out.glob("screen-*.txt")) + list(out.glob("fold-*.txt")):
+    for stale in list(out.glob("screen-*.txt")) + list(out.glob("abstract-*.txt")) + list(out.glob("fold-*.txt")):
         stale.unlink()
     spans = screens_of(page)
     if spans:
@@ -430,16 +482,281 @@ def lookup(args):
         files.add(file)
         head = re.search(r"(?s)<h2\b[^>]*>(.*?)</h2>", markup)
         (out / file).write_text(page_text(markup, glance=True), encoding="utf-8")
+        # the abstract: what the screen says before its detail begins (all of a screen that has no detail)
+        detail = DETAIL.search(markup, head.end() if head else 0)
+        (out / file.replace("screen-", "abstract-", 1)).write_text(
+            page_text(markup[:detail.start()] if detail else markup, glance=True), encoding="utf-8")
         index.append("%s\t%s\tscreen" % (text(head.group(1)) if head else name, file))
         folds(file, markup)
+    for to, inner in re.findall(r"""(?is)<a\b(?![^>]*\bclass\s*=\s*["']?[^"'>]*\bcard\b)[^>]*\bhref\s*=\s*["']#([^"']+)["'][^>]*>(.*?)</a>""", home):
+        if "screen-%s.txt" % re.sub(r"[^\w.-]", "_", to) in files and text(inner):
+            index.append("%s\tscreen-%s.txt\tlink on the home" % (text(inner), re.sub(r"[^\w.-]", "_", to)))
     seen = page_text(home, glance=True)
     if not spans and parts:
         seen += "\n" + "".join("## %s [opens a screen]\n" % line.split("\t")[0] for line in index if line.endswith("\tscreen"))
     (out / "home.txt").write_text(seen, encoding="utf-8")
     (out / "index.txt").write_text("".join(line + "\n" for line in index), encoding="utf-8")
-    print("%s: home.txt (what is seen before anything is pressed), %d screens and %d folded parts (what a press "
-          "opens), index.txt (what opens which file, for the one who runs the read)"
-          % (out, len(files), len(index) - len(files)))
+    print("%s: home.txt (what is seen before anything is pressed), %d screens (screen-<name>.txt, and its abstract "
+          "alone as abstract-<name>.txt) and %d folded parts, index.txt (what opens which file, for the one who runs the read)"
+          % (out, len(files), sum("\tfolded" in line for line in index)))
+    # the same words and the same pictures give the same mark: a page whose mark is that of its last read has changed neither
+    drawn = "".join(re.findall(r"(?is)<svg\b.*?</svg>|<img\b[^>]*>", page))
+    print("mark %s" % hashlib.sha256((page_text(page) + drawn).encode("utf-8")).hexdigest()[:12])
+    return 0
+
+
+BROWSERS = ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+            "/Applications/Chromium.app/Contents/MacOS/Chromium")
+
+
+class _Pictures(html.parser.HTMLParser):
+    """Each picture of a page with the words it is held to: a before-and-after (doc-ba) is one picture, and so is
+    each <svg> or <img> outside one (one inside a button, a badge, a key or a heading is an icon, not a
+    picture). A picture's words are its figure's caption, else its own label, else its card's title, else the
+    heading it stands under."""
+    VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
+    HEADS = {"h1", "h2", "h3", "h4", "h5", "h6"}
+    GROUPS = {"doc-vals", "doc-cards", "doc-cards-2"}
+    ICONS = {"btn", "badge", "kbd"}
+
+    def __init__(self, page):
+        super().__init__(convert_charrefs=True)
+        self.page = page
+        self.starts = [0] + [m.end() for m in re.finditer("\n", page)]  # the parser counts its lines by \n alone
+        self.open = []  # [tag, its start tag as written, classes, where it starts]
+        self.units, self.unit, self.figure = [], None, None
+        self.heading, self.hearing, self.caption = "", None, None
+        self.titles, self.closed = {}, None  # a card (by where it starts): its title; where a self-closed tag ends
+        self.feed(page)
+        self.close()
+        if self.figure:
+            self.units += self.figure["units"]
+        for unit in self.units:
+            # a card's title is its picture's, whether it stands before the picture or after it
+            words = unit["caption"] or unit["label"] or self.titles.get(unit["card"]) or unit["heading"]
+            unit["words"] = " ".join(words.split())
+
+    def here(self):
+        line, column = self.getpos()
+        return self.starts[line - 1] + column
+
+    def card(self):
+        return next((entry[3] for entry in reversed(self.open) if "card" in entry[2]), None)
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(reversed(attrs))
+        classes = [name for name in SPACE.split(attrs.get("class") or "") if name]
+        here = self.here()
+        if tag == "figure" and self.figure is None and self.unit is None:
+            self.figure = {"depth": len(self.open), "caption": "", "units": []}
+        elif tag == "figcaption" and self.figure:
+            self.caption = []
+        if (tag in self.HEADS or "card-title" in classes) and not self.hearing:
+            self.hearing = [tag, 0, [], "card-title" in classes]
+        if self.hearing and tag == self.hearing[0]:
+            self.hearing[1] += 1
+        icon = self.hearing or any(entry[0] == "button" or self.ICONS & set(entry[2]) for entry in self.open)
+        picture = "doc-ba" in classes or (tag in ("svg", "img") and not icon)
+        if picture and self.unit is None:
+            inside = self.open[max((n for n, entry in enumerate(self.open) if entry[0] == "main"), default=-1) + 1:]
+            group = next((entry[3] for entry in reversed(inside) if self.GROUPS & set(entry[2])),
+                         next((entry[3] for entry in reversed(inside) if entry[0] == "section"), 0))
+            self.unit = {"depth": len(self.open), "start": here, "group": group, "heading": self.heading, "card": self.card(),
+                         "label": attrs.get("aria-label") or attrs.get("alt") or "", "caption": "",
+                         # the parts it stands in come along, so that it is painted as on the page; a folded one opened
+                         "before": "".join(re.sub(r"(?i)^<details\b", "<details open", entry[1]) for entry in inside),
+                         "after": "".join("</%s>" % entry[0] for entry in reversed(inside))}
+            if tag == "img":
+                self.done(here + len(self.get_starttag_text()))
+        if tag not in self.VOID:
+            self.open.append([tag, self.get_starttag_text(), classes, here])
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        if tag not in self.VOID:
+            self.closed = self.here() + len(self.get_starttag_text())
+            self.handle_endtag(tag)
+            self.closed = None
+
+    def done(self, end):
+        self.unit["markup"] = self.page[self.unit["start"]:end]
+        (self.figure["units"] if self.figure else self.units).append(self.unit)
+        self.unit = None
+
+    def handle_endtag(self, tag):
+        # a heading closed by another heading's tag still ends there (else every later picture reads as an icon in it)
+        if self.hearing and (tag == self.hearing[0] or (tag in self.HEADS and self.hearing[0] in self.HEADS)):
+            self.hearing[1] -= 1
+            if not self.hearing[1] or tag != self.hearing[0]:
+                self.heading = " ".join("".join(self.hearing[2]).split())
+                if self.hearing[3] and self.card() is not None:
+                    self.titles[self.card()] = self.heading
+                self.hearing = None
+        at = next((n for n in range(len(self.open) - 1, -1, -1) if self.open[n][0] == tag), None)
+        if at is None:
+            return
+        end = self.closed or self.page.find(">", self.here()) + 1
+        del self.open[at:]
+        if self.unit and len(self.open) <= self.unit["depth"]:
+            self.done(end)
+        if tag == "figcaption" and self.caption is not None:
+            if self.figure:
+                self.figure["caption"] = " ".join(" ".join(self.caption).split())
+            self.caption = None
+        elif tag == "figure" and self.figure and len(self.open) <= self.figure["depth"]:
+            for unit in self.figure["units"]:
+                unit["caption"] = self.figure["caption"]
+            self.units += self.figure["units"]
+            self.figure = None
+
+    def handle_data(self, data):
+        if self.hearing:
+            self.hearing[2].append(data)
+        if self.caption is not None:
+            self.caption.append(data)
+
+
+def browser():
+    """A Chromium-family browser to take the pictures with ($DOCKIT_BROWSER names one that is somewhere else)."""
+    for path in ([os.environ["DOCKIT_BROWSER"]] if os.environ.get("DOCKIT_BROWSER") else BROWSERS):
+        if os.access(path, os.X_OK):
+            return path
+    return shutil.which("chromium") or shutil.which("google-chrome") or shutil.which("chromium-browser")
+
+
+PER_READER = 20  # pictures one reader looks at: few enough that every one is looked at
+
+
+def pictures(args):
+    """A page's pictures, each alone in a file, and for each the lines to choose from: its own and its nearest
+    neighbours'. A reader who sees the picture and not its neighbours picks a line; grade says which pictures
+    were not read as what they are. (first-reader's references/lookup.md: the pictures are read too.)"""
+    page = pathlib.Path(args.page).read_text(encoding="utf-8")
+    seen = read(page)
+    units = _Pictures(re.sub(r"(?s)<!--.*?-->", lambda m: re.sub(r"[^\n]", " ", m.group(0)), page)).units
+    asked, alone = [], []
+    for n, unit in enumerate(units):
+        unit["n"] = n
+    for unit in units:
+        near = sorted((other for other in units if other is not unit), key=lambda other: (other["group"] != unit["group"], abs(other["n"] - unit["n"])))
+        others = []
+        for other in near:
+            if other["words"] and other["words"] != unit["words"] and other["words"] not in others:
+                others.append(other["words"])
+        if not unit["words"] or not others:
+            alone.append(unit)
+            continue
+        unit["options"] = others[:3]
+        # where its own line stands among them comes from the words themselves: the same every run, no pattern to learn
+        unit["options"].insert(zlib.crc32(unit["words"].encode("utf-8")) % (len(unit["options"]) + 1), unit["words"])
+        asked.append(unit)
+    out = pathlib.Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    for stale in out.glob("quiz-*"):  # only what an earlier run of this command made
+        if stale.is_dir() and re.fullmatch(r"quiz-\d+", stale.name) and (stale / "quiz.md").exists():
+            shutil.rmtree(stale)
+    (out / "unasked.txt").write_text("".join("%s\t(under: %s)\n" % (unit["words"] or "(no words of its own)", unit["heading"] or "no heading")
+                                             for unit in alone), encoding="utf-8")
+    if not asked:
+        (out / "key.tsv").write_text("", encoding="utf-8")
+        print("%s: no picture to read (%d on the page, none with words of its own and a neighbour to tell it from: unasked.txt)" % (out, len(units)))
+        return 0
+    chrome = browser()
+    if not chrome:
+        sys.exit("dockit pictures: no Chromium-family browser found (Chrome, Brave, Edge or Chromium; or name one in DOCKIT_BROWSER)")
+    # the picture's own page: the page's styles and shared <defs>, the parts the picture stands in, and no way out
+    # (it fetches nothing and runs no script, whatever the page under test holds)
+    head = ('<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; '
+            'style-src \'unsafe-inline\'; img-src data:; font-src data:">'
+            + "".join("<style%s>%s</style>" % (" data-doc-kit" if is_kit else "", css) for is_kit, css in seen.styles))
+    defs = "".join(re.findall(r"(?is)<defs\b.*?</defs>", page))
+    shared = '<svg width="0" height="0" style="position:absolute">%s</svg>' % defs if defs else ""
+    # at least four readers when there are four pictures: a reader is never shown the neighbours whose lines it is offered
+    readers = max(-(-len(asked) // PER_READER), min(4, len(asked)))
+    key, gone = [], []
+
+    def take(job):
+        if len(gone) > 3:
+            return
+        try:  # a headless browser now and then does not come back: it is stopped, and the picture taken again
+            subprocess.run(job, capture_output=True, timeout=40)
+        except subprocess.TimeoutExpired:
+            gone.append(job)
+
+    with tempfile.TemporaryDirectory() as work:
+        jobs = []
+        for n, unit in enumerate(asked, 1):
+            quiz = out / ("quiz-%d" % ((n - 1) % readers + 1))
+            quiz.mkdir(exist_ok=True)
+            unit["file"] = quiz / ("pic-%03d.png" % n)
+            source = pathlib.Path(work) / ("%03d.html" % n)
+            source.write_text('<!doctype html><html lang="%s"><head>%s</head><body>%s<main class="doc%s" id="all">%s%s%s</main></body></html>'
+                              % (html.escape(seen.lang or "en"), head, shared, " doc-prose" if seen.prose else "",
+                                 unit["before"], unit["markup"], unit["after"]), encoding="utf-8")
+            # the browser's own profile, as the screenshots of the page use it (a fresh profile does not start headless)
+            jobs.append([chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--window-size=500,600",
+                         "--screenshot=%s" % unit["file"].resolve(), "file://%s#all" % source])
+            key.append("%03d\t%s\t%s\n" % (n, "ABCD"[unit["options"].index(unit["words"])], unit["words"]))
+        taken = lambda unit: unit["file"].exists() and unit["file"].stat().st_size > 100
+        with concurrent.futures.ThreadPoolExecutor(4) as pool:
+            list(pool.map(take, jobs))
+        # browsers started together can also trip over their shared profile: what is missing is taken again, one at a time
+        for _ in range(2):
+            for unit, job in zip(asked, jobs):
+                if not taken(unit):
+                    take(job)
+    missing = [unit["file"].name for unit in asked if not taken(unit)]
+    if missing:
+        sys.exit("dockit pictures: the browser (%s) %s: no picture for %s"
+                 % (chrome, "did not come back, four times" if len(gone) > 3 else "gave none", ", ".join(missing[:5])))
+    quizzes = sorted((quiz for quiz in out.glob("quiz-*") if re.fullmatch(r"quiz-\d+", quiz.name)), key=lambda quiz: int(quiz.name[5:]))
+    for quiz in quizzes:
+        lines = ["# Pictures, one at a time\n\nFor each picture: open its file, look at that picture alone, and choose the line that is this picture's.\n"
+                 "The other lines belong to pictures you are not shown. Write one line a picture into answers.txt in this\n"
+                 "directory, exactly so: its number, the letter, a colon, then what you see in it in a few words\n"
+                 "(`007 B: two bars, the second higher`). Every picture gets an answer; when none fits, the nearest.\n"]
+        for unit in asked:
+            if unit["file"].parent == quiz:
+                lines.append("\n## %s  %s\n\n%s\n" % (unit["file"].name[4:7], unit["file"].resolve(),
+                                                      "\n".join("%s. %s" % ("ABCD"[k], option) for k, option in enumerate(unit["options"]))))
+        (quiz / "quiz.md").write_text("".join(lines), encoding="utf-8")
+    (out / "key.tsv").write_text("".join(key), encoding="utf-8")
+    print("%s: %d pictures for %d readers (quiz-<n>/quiz.md: one fresh reader each, who gets that directory and nothing else); "
+          "key.tsv is for dockit grade, not for a reader. %d pictures are not asked about (unasked.txt): no words of their "
+          "own, or no neighbour to tell them from." % (out, len(asked), len(quizzes), len(alone)))
+    return 0
+
+
+def grade(args):
+    """What the readers of the pictures chose, against the key: the pictures that were not read as what they are."""
+    out = pathlib.Path(args.dir)
+    key = [line.split("\t", 2) for line in (out / "key.tsv").read_text(encoding="utf-8").splitlines() if line.strip()]
+    said, odd = {}, []
+    for quiz in sorted(out.glob("quiz-*")):
+        if not re.fullmatch(r"quiz-\d+", quiz.name) or not (quiz / "answers.txt").exists():
+            continue
+        own = {picture.name[4:7] for picture in quiz.glob("pic-*.png")}  # a reader answers for its own pictures only
+        for line in (quiz / "answers.txt").read_text(encoding="utf-8").splitlines():
+            answer = re.match(r"\W*(\d{1,3})\W{1,4}([A-D])\s*(?:[:.)\-–—]\s*(.*)|$)", line)
+            if answer and "%03d" % int(answer.group(1)) in own:
+                said["%03d" % int(answer.group(1))] = (answer.group(2), (answer.group(3) or "").strip())
+            elif re.match(r"\W*\d", line):
+                odd.append("%s: %s" % (quiz.name, line.strip()))
+    missed = [(number, said[number]) for number, letter, _ in key if number in said and said[number][0] != letter]
+    silent = [number for number, _, _ in key if number not in said]
+    print("%d pictures: %d read as what they are, %d not, %d without an answer. A right choice can be right by chance "
+          "(one time in four, of four lines): it is the misses that are findings." % (len(key), len(key) - len(missed) - len(silent), len(missed), len(silent)))
+    words = {number: text for number, _, text in key}
+    for number, (letter, saw) in missed:
+        quiz = next(out.glob("quiz-*/pic-%s.png" % number))
+        options = re.search(r"(?ms)^## %s .*?^%s\. (.*?)$" % (number, letter), (quiz.parent / "quiz.md").read_text(encoding="utf-8"))
+        print("%s\n  is:      %s\n  read as: %s\n  saw:     %s" % (quiz, words[number], options.group(1) if options else letter, saw))
+    if silent:
+        print("without an answer: " + " ".join(silent))
+    if odd:
+        print("lines not understood (a line is `007 B: what you see`, and a reader answers for its own pictures):\n  " + "\n  ".join(odd))
     return 0
 
 
@@ -484,6 +801,13 @@ def problems(seen):
     def some(found):
         return ", ".join(found[:5]) + (" and %d more" % (len(found) - 5) if len(found) > 5 else "")
 
+    if seen.bare:
+        out.append("a screen opens without its abstract (after its heading and before its detail, which begins at the first "
+                   "h3, table, folded part or doc-vals: a doc-how line or a doc-lede sentence that says something): " + some(seen.bare))
+    if seen.long:
+        out.append("a screen's abstract is longer than an abstract (what stands between its heading and its detail: at most "
+                   "400 full-width characters, or 800 Latin ones; put the rest under an h3 or fold it): " + some(seen.long))
+
     if seen.styled:
         out.append("style= on a page (use a part, or a class in the page's own CSS): " + some(seen.styled))
     loads = seen.loads + [found + " in a <style>" for _, css in seen.styles for found in fetched(css)]
@@ -504,14 +828,15 @@ def page_as_text(args):
 
 def words(path, page, seen):
     """A Japanese page's words, read by the bundled yomiyasu lint. Nobody picks whether, or as what kind of text:
-    the page's language and shape say. It names places to rewrite; it never changes whether the page passes."""
+    the page's language and shape say. The places it names do not fail the page; a page it could not read does
+    (returns False): a line in a passing build is overlooked."""
     prose = text(re.sub(r"(?s)<!--.*?-->|<(style|script|pre|code)\b.*?</\1>", " ", page))
     if not (seen.lang.lower().startswith("ja") if seen.lang else KANA.search(prose)):
-        return
+        return True
     kind = "article" if seen.prose else "manual"
     why = None
     if not LINT.exists():
-        why = "the lint is not beside this dockit (run the plugin's own dockit)"
+        why = "skills/yomiyasu is not beside skills/doc-kit (run the plugin's own dockit, or take both directories)"
     else:
         try:
             ran = subprocess.run([sys.executable, "-I", str(LINT), "--doc-type", kind], input=page_text(page),
@@ -521,11 +846,12 @@ def words(path, page, seen):
         except subprocess.TimeoutExpired:
             why = "it did not finish in five minutes"
     if why:
-        print("%s: Japanese, and its words were NOT read by the yomiyasu lint: %s" % (path, why), file=sys.stderr)
-        return
+        print("%s: Japanese, and its words were not read by the yomiyasu lint: %s" % (path, why), file=sys.stderr)
+        return False
     print("%s: its Japanese, read by the yomiyasu lint as: %s (the line numbers are those of dockit text).\n"
           "Rewrite every place it names by the yomiyasu skill's rule for it, keeping the meaning; a place left as it is\n"
           "is named in the hand-over with its reason.\n%s" % (path, kind, ran.stdout.strip()))
+    return True
 
 
 def check(args):
@@ -534,16 +860,16 @@ def check(args):
         page = pathlib.Path(path).read_text(encoding="utf-8")
         seen = read(page)
         found = problems(seen)
-        bad += bool(found)
         for line in found:
             print("%s: %s" % (path, line), file=sys.stderr)
-        words(path, page, seen)
+        bad += bool(found) or not words(path, page, seen)
     return 1 if bad else 0
 
 
 def main():
     for stream in (sys.stdout, sys.stderr):  # a terminal that cannot show a character must not stop a check
-        stream.reconfigure(errors="replace")
+        if stream:
+            stream.reconfigure(errors="replace")
     parser = argparse.ArgumentParser(prog="dockit", description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
     w = sub.add_parser("wrap")
@@ -567,6 +893,13 @@ def main():
     look.add_argument("page")
     look.add_argument("-o", "--out", required=True)
     look.set_defaults(run=lookup)
+    pics = sub.add_parser("pictures")
+    pics.add_argument("page")
+    pics.add_argument("-o", "--out", required=True)
+    pics.set_defaults(run=pictures)
+    graded = sub.add_parser("grade")
+    graded.add_argument("dir")
+    graded.set_defaults(run=grade)
     args = parser.parse_args()
     sys.exit(args.run(args))
 

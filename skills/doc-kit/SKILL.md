@@ -41,12 +41,16 @@ through all of these, in this order, without being asked:
    the language and the kind of page by itself. Rewrite every place by that skill's rule for it (the meaning,
    the conditions and the strength of a claim stay as they were; nothing is added), then run `check` once
    more. A place that is right as it stands (a fixed term, a literal meaning) is named in the hand-over with
-   its reason. The places it names do not fail the page, and their number is not a score.
+   its reason. The places it names do not fail the page, and their number is not a score; a Japanese page the
+   lint could not read does fail.
 4. **Look at it** at desktop and phone width, and read the images.
 5. **Have it read.** The `first-reader` skill reads the page before the user does. A wide page (cards, a
-   manual, a cheat sheet) is read by lookup: its readers come with a wish and look for it. The whole procedure
-   is `../first-reader/references/lookup.md` (short; nothing else of that skill is needed), and
-   `python3 scripts/dockit lookup page.html -o <run dir>` gives the page as such a reader meets it. A prose
+   manual, a cheat sheet) is read by lookup: its readers come with a wish and look for it, first in a
+   screen's abstract and only then in the screen; and its pictures are read one at a time, each by a reader
+   who is shown that picture without its neighbours and says which line is its own. The whole procedure is
+   `../first-reader/references/lookup.md` (short; nothing else of that skill is needed);
+   `python3 scripts/dockit lookup page.html -o <run dir>` gives the words as such a reader meets them, and
+   `python3 scripts/dockit pictures page.html -o <run dir>/pictures` the pictures. A prose
    page gets first-reader's full read; its text is the source Markdown when there is one, otherwise
    `python3 scripts/dockit text page.html > page.txt`. The readers are fresh subagents (you have seen the
    page, they have not). Fix what they stumbled on, run the check again, and have the same readers (new
@@ -57,14 +61,18 @@ through all of these, in this order, without being asked:
 6. **Hand it over**: the page's path, what the readers said in two or three lines and what you changed for
    it, and what you did not check.
 
-Step 5 is left out only for a change that touches neither the words nor their order (a restyle, a typo, a
-rebuilt kit). Say which step you left out, and why. Nothing else is optional: a page
+Step 5 is left out only when the page says and shows what it did at its last read. For a page read by lookup,
+`dockit lookup` prints a mark of its words and pictures (`mark 3f2a…`), the readers file keeps the mark of each
+read, and the same mark means neither changed (a restyle, a rebuilt kit). For a prose page from Markdown: its
+source file is the same as at the commit of its last read. Anything else is read, however small the change
+looks: a typo, a comma the lint named, a redrawn picture. Say which step you left out, and why. Nothing else is optional: a page
 that skipped a step is not finished, however good it looks.
 
 What holds a page to this, said plainly, because the hand-over must not claim more:
 
 - **A script stops it**: `dockit check`, and only that: the classes, `style=`, the kit's copy, a picture's
-  class, a card's and its screen's headings, the ordinary ways a page fetches from outside. It stops a page where it is
+  class, a card's and its screen's headings, a screen without a short abstract, the ordinary ways a page
+  fetches from outside. It stops a page where it is
   run: here that is you, in step 3; in a repository that builds pages, put it in that repository's tests.
   Inside a `doc-fig` figure it does not ask that classes be defined and lets `style=` be. It reads
   well-formed markup and plainly written CSS, and does not see what a script does when it runs: a check on
@@ -73,10 +81,9 @@ What holds a page to this, said plainly, because the hand-over must not claim mo
   by yomiyasu's rules and rewriting what its lint names (`check` prints the places; it does not stop for
   them), looking at the screenshots, the read, and the parts' rules `check` does not read (a `<thead>`, a
   picture's label, a way back from a screen). That is why step 6 says what was not done.
-- **Nobody checks**: whether a picture is understood at a glance (the readers of step 5 read text), whether
-  a tired person reads as far as the simulated one did, whether a person finds the page easy to read. A
-  read without a stumble is not evidence that it is: the page, the wishes and the verdicts come from the same
-  kind of model, and one read is one sample. Do not tell the user a page "reads well"; tell them what was
+- **Nobody checks**: whether a person finds the page easy to read, or sees in a picture what the picture's
+  reader (a model, choosing among four lines) saw. A read without a stumble is not evidence: the page, the
+  wishes and the verdicts come from the same kind of model, and one read is one sample. Do not tell the user a page "reads well"; tell them what was
   found and fixed.
 
 In this skill's directory:
@@ -84,7 +91,8 @@ In this skill's directory:
 - `sample.html`: every part, on one page. Open it (or read its source) before writing; copy the markup from it.
 - `kit.css`: the built CSS. Never edit it, never write a second one.
 - `scripts/dockit`: makes a page (`wrap`), checks one (`check`), and gives a page's text for the readers
-  (`text`, and `lookup` for a page read by lookup). Python 3.9+, nothing to install.
+  (`text`; `lookup` and `pictures` for a page read by lookup, `grade` for what the pictures' readers
+  chose). Python 3.9+, nothing to install.
 
 ## Make a page
 
@@ -102,7 +110,9 @@ not convert it by hand.
 
 A page that a generator in another repository builds: copy `kit.css` into that repository once, inline it as
 `<style data-doc-kit>…</style>`, put the body in `<main class="doc" id="all">`, and run `dockit check` in that
-repository's tests. The check says when the copy has fallen behind the kit.
+repository's tests. The check says when the copy has fallen behind the kit. Run the plugin's own `dockit`; a
+repository that pins the kit takes `skills/doc-kit` and `skills/yomiyasu` together (the check reads a Japanese
+page's words with the second, and fails a Japanese page it could not read).
 
 ## The parts
 
@@ -123,6 +133,7 @@ repository's tests. The check says when the copy has fallen behind the kit.
 | Good to know / take care | `alert alert-soft alert-info` / `alert alert-soft alert-warning` (with `role="alert"`) |
 | Keys | `kbd kbd-sm` |
 | Labels | `badge` with `badge-neutral`, `badge-ghost`, `badge-outline` or `badge-soft badge-primary` |
+| A screen's abstract | after the screen's `<h2>` and before its detail (the first `<h3>`, table, folded part or `doc-vals`): a `doc-how` line (where, and what to set), with the before → after and one line of what comes out; a screen that only lists things opens with a `doc-lede` sentence instead. It answers the screen's wish by itself, as a paper's abstract does. `check` holds that it is there, says something and is short (at most 400 full-width or 800 Latin characters, so a screen with no `<h3>` at all is short as a whole); whether it answers the wish, the read finds out. What follows is detail, under `<h3>` |
 | One screen at a time | home in `doc-home`, each screen a `<section class="doc-view" id="…">` with a way back (`btn btn-ghost btn-sm`); `#all` shows everything. A card that opens a screen and that screen's `<h2>` say the same words (`check` compares them) |
 | A page that is prose (from Markdown) | `<main class="doc doc-prose">` (`dockit wrap --prose`), or a `doc-prose` section: one column; bare `<h2>`, `<p>`, lists, `<a>`, `<pre><code>`, `<blockquote>`, `<details>`, `<hr>` |
 | A figure made elsewhere (Mermaid, D2, a chart, a screenshot) | `<figure class="doc-fig">` > `<svg>` or `<img>` + `<figcaption>`: it keeps the white ground it was drawn for |

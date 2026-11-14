@@ -3,27 +3,39 @@
 For a page nobody reads in order: a manual, a cheat sheet, a reference in screens or sections. Its readers
 come with something they want to do, look for it, and leave. This file is the whole procedure for such a
 page. Nothing else in SKILL.md is needed for it: no timed read, no recall test, no trust ledger, no
-manifest, no page of the read. It was worked out on a real manual (two readers, ten wishes, two rounds).
+manifest, no page of the read. It was worked out on a real manual.
 
 Added by the doc-kit project; not part of the upstream skill.
 
+There is one way through it. Nothing below is a level or an option: every such page gets the words read
+and the pictures read, in this order.
+
 ## What you need
 
-- **The page's text, in the two steps a reader meets it.**
+- **The page's text, in the steps a reader meets it.**
   `python3 <doc-kit>/scripts/dockit lookup page.html -o <run dir>` (`<doc-kit>` is the doc-kit skill's
-  directory, beside this skill's). It writes `home.txt` (the page before anything is pressed), one
-  `screen-<name>.txt` for each screen, one `fold-<n>.txt` for what each folded part holds, and `index.txt`
-  (what opens which file; for you, not for the readers). It works on any HTML page: one that is not in
-  screens is cut at its `<h2>` headings.
+  directory, beside this skill's). It writes `home.txt` (the page before anything is pressed), for each
+  screen `abstract-<name>.txt` (what the screen says before its detail begins) and `screen-<name>.txt`
+  (all of it), one `fold-<n>.txt` for what each folded part holds, and `index.txt` (what opens which file:
+  a card, a folded part, a link on the home; for you, not for the readers). Its last line, `mark …`, is
+  a mark of the page's words and pictures: write it in the readers file. A page whose mark is that of its
+  last read says and shows the same, and is not read again. It works on any HTML page: one that is not in screens is cut at its
+  `<h2>` headings.
+- **The page's pictures, each alone.**
+  `python3 <doc-kit>/scripts/dockit pictures page.html -o <run dir>/pictures` (it needs a Chromium-family
+  browser, the one the screenshots are taken with). It writes `quiz-<n>/quiz.md` with its
+  `pic-<number>.png` files (twenty pictures a quiz at most, four quizzes at least, so that a reader is
+  never shown the neighbours whose lines it is offered), `key.tsv`, which is for `dockit grade` and not
+  for a reader, and `unasked.txt`, the pictures it could not ask about.
 - **`<page>.readers.md`, committed, beside what a person edits to change the page** (its README, its
-  template, its generator; not beside a built page that git ignores): the two readers, the wishes, each
-  round's result (the form is at the end). Writing the readers and the wishes is the costly part, and it
-  is done once: the next read of the page is one command and two subagents. The run directory
+  template, its generator; not beside a built page that git ignores): the reader, the wishes, each
+  round's result (the form is at the end). Writing the reader and the wishes is the costly part, and it
+  is done once: the next read of the page is two commands and a few subagents. The run directory
   (`.first-reader/<page>-<date>/` beside that file, `-r2` for a second run that day) holds only what a
   run made and can be thrown away.
 
-In the text the readers get: `[picture: its label]` is a picture they cannot see (a bare `[picture]` has
-no label on the page, which is worth a line in your findings); `[folded]` is a part that opens when
+In the text the readers get: `[picture: its label]` is a picture they cannot see here (a bare `[picture]`
+has no label on the page, which is worth a line in your findings); `[folded]` is a part that opens when
 pressed; `[opens a screen]` after a heading is a card that can be pressed; `[word]` is a badge; a line
 with `|` is a table's row; `- ` lines in a group are links.
 
@@ -31,17 +43,15 @@ You have seen the page (you made it, or looked at its pictures): that is fine. T
 reader is a fresh subagent, and "the same reader again" is a new subagent given the same persona. A small,
 fast model reads well enough.
 
-## The readers
+## The reader
 
-Two, the same person at two moments:
+One person: the page's owner a month later. They know the field and the equipment and have forgotten this
+tool's names. Write them for this page's real user, in two lines.
 
-- **the owner a month later**: time to spare, knows the field and the equipment, has forgotten this tool's
-  names;
-- **the same person in the middle of work**: tired, an idea fading, thirty seconds a lookup. Reads the
-  first third of a screen with care and skims the rest; gives up when the first press is wrong and the
-  second is not obvious.
-
-Write them for this page's real user, two lines each.
+Two fresh subagents read as this person, each alone. They are not two kinds of reader: a read is one
+sample, and two say more than one. Whether the reader is tired or has time is not a fork here. A page that
+serves the one in a hurry is a page whose screens answer in their abstract, and that is what the read
+below tests for every reader.
 
 ## The wishes
 
@@ -52,76 +62,96 @@ knowing whether it is absent or they missed it. Take "cannot" from a sentence in
 quote it in the readers file; if the reference does not say, you have found a "no fact" before any reader
 has read.
 
-## The read
+## The read of the words
 
-Each reader, alone. Before step 1, tell them what the marks in the text mean (above), and that they cannot
-see pictures.
+Each reader, alone. Before step 1, tell them what the marks in the text mean (above).
 
 1. The reader gets `home.txt` and the wishes, and writes for every wish what they would press (a card
    marked `[opens a screen]`, or a `[folded]` part) and how sure they are: sure, probably, or guessing.
    "Nothing here; I would give up" is an answer too. All wishes before step 2, and no changing afterwards.
-2. For each wish the reader gets the text of what they pressed and nothing else, and says what they would
-   do, and where they stopped. `index.txt` says which file that is. Give them the file's text in the
-   message, or copies in a directory of their own; never the run directory, which holds every screen.
-   If the first press does not answer the wish, the reader may name one more press from what they now see
-   (a folded part, a link at the end of the screen); give them that text too. The tired reader stops
-   there.
+2. For each wish the reader gets the **abstract** of the screen they pressed (`abstract-<name>.txt`; for a
+   folded part, its `fold-<n>.txt`) and nothing else, and says what they would do, or that the abstract
+   does not say.
+3. Only for a wish the abstract did not answer, the reader gets the whole screen (`screen-<name>.txt`),
+   says what they would do, and where they stopped. If that does not answer it either, they may name one
+   more press from what they now see (a folded part, a link at the end of the screen); give them that
+   text too, and stop there.
 
-One reader is one subagent over both steps: continue it for step 2, or give a new one its own step-1
-answers. Ask each for a report in this order: for every wish, what they would do; every stumble, with the
-page's own words quoted; then, without looking back, what they remember; then one question for the
-author. (That question tends to point at the page's largest hole.)
+`index.txt` says which file a press opens. Give a reader the file's text in the message; never the run
+directory, which holds every screen. One reader is one subagent over the three steps (continue it from
+step to step). Ask each for a report in this order: for every wish, what they would do and from which
+step; every stumble, with the page's own words quoted; then, without looking back, what they remember;
+then one question for the author. (That question tends to point at the page's largest hole.)
 
-Limits to know, and to say in the hand-over when they matter:
-
-- A model reads every line it is given. The tired reader's thirty seconds and "the first third of a
-  screen" are asked of it, not enforced; when an answer sat deep in a long screen, ask that reader whether
-  a tired person would have got that far, and count it as hesitation if not.
-- The readers read text. This read tests the words and where things are; whether a picture is understood
-  at a glance, it does not test, and nothing else in the procedure does.
-- The page, the wishes and the verdicts come from the same kind of model, and a read is one sample: run
-  again, a reader can press differently. What the readers found is real (hold it against the page); what
-  they did not find proves nothing. No person has been compared with these readers.
+What a reader in a hurry gets is not asked of the reader: it is what step 2 hands them. `dockit check`
+holds every screen to having an abstract that says something and is short; whether it answers the
+screen's wish is what this read finds out.
 
 ## Reading the result
 
 For each wish, you decide, against the tool's reference (the readers do not know the tool):
 
-- **sure**: pressed the right place, sure of it, and what they would do is right. For a wish the tool
-  cannot fulfil: they say it cannot be done, and quote the page saying so.
-- **hesitated**: got there with a wrong first press, or unsure, or with an answer that is partly right.
+- **from the abstract**: pressed the right place, and what they would do is right, from step 2. For a wish
+  the tool cannot fulfil: they say it cannot be done, and quote the page saying so.
+- **from the screen**: right, but only in step 3, or after a wrong first press. When the wish is the
+  screen's own wish, this is a finding: the abstract does not carry the answer. When the wish is about one
+  of the screen's details (which value, an exception), the detail is where it belongs.
 - **not found**: gave up, or ended somewhere else, or would do the wrong thing. Sure and wrong is the worst
   kind: note it.
 
 Then sort every stumble:
 
-- **words**: the page says it, under words the reader did not look for. Change the card's or the heading's
-  words; the wish is how a reader says it.
+- **words**: the page says it, under words the reader did not look for. Change the card's, the heading's or
+  the abstract's words; the wish is how a reader says it.
 - **no place**: it is true and the page does not say it. Give it a place: a card, a line, or "this cannot
   be done, and what to do instead".
 - **no fact**: nobody has tried it or measured it. This is not fixed by rewriting: it becomes an issue, or
   a line in the hand-over. Do not cover it with wording.
 
-Before counting a stumble, hold it against the page's pictures (open the page, or the screenshots taken
-before this read). A reader who could not know what only a picture shows has found nothing, unless that
-fact should be in words too.
-
 A note that admits something on the page is not real ("this number is not from a real recording") makes a
 reader doubt the whole procedure. Say first which parts are real, then what is not.
 
+## The read of the pictures
+
+The readers of the words do not see pictures, and on such a page the pictures are the point. So the
+pictures are read too, one at a time: a reader is shown a picture without its neighbours, and says which
+line is its own.
+
+1. One fresh subagent for each `quiz-<n>` directory. It gets that directory and nothing else, follows
+   `quiz.md` (for each picture: open the file, choose among up to four lines the one that is this
+   picture's, say in a few words what it sees) and writes `answers.txt` there.
+2. `python3 <doc-kit>/scripts/dockit grade <run dir>/pictures` names every picture that was not read as
+   what it is: its file, the line it is held to, the line it was read as, and what the reader saw.
+
+A picture's line is its caption, else its own label, else its card's title, else the heading it stands
+under; the other lines are its nearest neighbours' (the other values of the same setting first). A miss
+means the picture does not say its line, or cannot be told from its neighbour. Look at the picture file:
+when the line is true of the tool, redraw the picture so that the difference shows; when the picture is
+what the tool does, the line is wrong, so change the line. `unasked.txt` lists the pictures that were not
+asked about (no words of their own, or no neighbour with other words): give each a label. An icon in a
+button, a badge, a key or a heading is not a picture, and a `<canvas>` is not read.
+
 ## The second round, and the end
 
-After the fixes: the same wishes, the same two personas, new subagents. Mark the wishes whose heading the
-fix moved towards the wish's own words; a hit there was bought, not found. One second round, no third:
-what still stumbles goes in the hand-over.
+After the fixes: the same wishes, the same persona, new subagents; `dockit pictures` and its readers
+again. Mark the wishes whose heading or abstract the fix moved towards the wish's own words; a hit there
+was bought, not found. One second round, no third: what still stumbles goes in the hand-over.
+
+## Limits, to say in the hand-over
+
+- The page, the wishes and the verdicts on the words come from the same kind of model, and a read is one
+  sample: run again, a reader can press differently. What the readers found is real (hold it against the
+  page); what they did not find proves nothing. No person has been compared with these readers.
+- A picture's reader chooses among four lines or fewer, so one right choice in four (or more) is right by chance: a
+  miss is a finding, a hit is not proof. The reader is a model looking at an image file, at phone width;
+  whether a person sees the same at a glance has not been measured.
 
 ## `<page>.readers.md`
 
 ```markdown
 # <page>, read by lookup
 
-- **S**: <the owner a month later, in two lines>
-- **K**: <the same person in the middle of work, in two lines>
+- **Reader**: <the owner a month later, in two lines>
 
 Wishes (in the reader's words; * = the page does not name it; ✗ = the tool cannot do it):
 
@@ -130,10 +160,14 @@ B. …
 H.* …
 J.*✗ … (cannot: "<the reference's sentence>")
 
-Round 1 (<date>, the page's source at <commit>): sure: A, C, E. Hesitated: B, D. Not found: J.
+Round 1 (<date>, the page's source at <commit>, mark <the mark dockit lookup printed>)
+Words: from the abstract: A, C, E. From the screen: B, D. Not found: J.
 Stumbles: <words / no place / no fact, one line each, with the page's words quoted>
-The readers' questions: S: … K: …
+The readers' questions: 1: … 2: …
+Pictures: <how many> read, <how many> not read as what they are: <number: is / read as, one line each>
 
-Round 2 (<date>, the page's source at <commit>; heading moved towards the wish: D): sure: … Hesitated: … Not found: …
+Round 2 (<date>, the page's source at <commit>, mark <mark>; moved towards the wish: D)
+Words: from the abstract: … From the screen: … Not found: …
+Pictures: …
 Left for the hand-over: …
 ```

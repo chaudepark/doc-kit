@@ -51,9 +51,9 @@ ask ─→ a skill sets the steps ─→ the body (parts only) ─→ one HTML f
 
 - **One look** for pages that are read (two exceptions: a slide deck, and the page `first-reader` builds of a read): `skills/doc-kit/kit.css`, prebuilt from daisyUI 5 and Tailwind CSS 4. Fonts, text sizes (five of them), widths and colours are decided there and nowhere else. Pages are dark only.
 - **Only the parts in the sample**: `skills/doc-kit/sample.html` is the list of parts a page may use. The build keeps only the classes the sample uses, so anything else does nothing on a page.
-- **Checked**: `dockit check` stops a page that uses a class no style defines (the kit holds only the sample's) or a `style=` attribute, carries an old `kit.css`, names a picture's class like a part, heads a screen in other words than the card that opens it, or would make the browser fetch what is not in the file.
-- **Read before you read it**: `first-reader`'s simulated readers go through every page (a manual by lookup, with the wishes a user would come with: `skills/first-reader/references/lookup.md`; prose from top to bottom; of a book, its first chapter and the chapters with exercises), and what they stumbled on is fixed first. It is left out only for a change that touches neither the words nor their order. The read finds defects; it does not show that a page reads well.
-- **One file**: a page opens offline and on a phone. The repository that uses the kit needs no Node and no build (`dockit` is Python 3.9, standard library only).
+- **Checked**: `dockit check` stops a page that uses a class no style defines (the kit holds only the sample's) or a `style=` attribute, carries an old `kit.css`, names a picture's class like a part, heads a screen in other words than the card that opens it, opens a screen without a short abstract, or would make the browser fetch what is not in the file.
+- **Read before you read it**: `first-reader`'s simulated readers go through every page (a manual by lookup, with the wishes a user would come with: `skills/first-reader/references/lookup.md`; prose from top to bottom; of a book, its first chapter and the chapters with exercises), and what they stumbled on is fixed first. It is left out only when the page says the same words as at its last read (a restyle, a rebuilt kit). The read finds defects; it does not show that a page reads well.
+- **One file**: a page opens offline and on a phone. The repository that uses the kit needs no Node and no build (`dockit` is Python 3.9, standard library only; taking pictures needs a Chromium-family browser).
 - **Any language**: a page takes its language from its text (Japanese when its prose has kana, otherwise English; code is not counted), or from `--lang`. The fonts are the ones Mac, Windows and Linux already have for Latin and Japanese.
 
 A part is added to the sample in this repository, not on a page. The rule is to ask the owner first: few parts is the point.
@@ -64,7 +64,7 @@ Three different things stand behind the sentences above, and they are not equall
 
 **A script stops it.**
 
-- `dockit check` refuses a page with a class no style defines, a `style=` attribute, an old `kit.css`, a picture's class named like a part, a card and its screen headed in different words, or the ordinary ways a page fetches from outside: a `src`, a `srcset`, a frame, a `<link>`, an `@import`, a `url()` that is neither `data:` nor `#id`, a `<meta>` refresh. It reads the markup with an HTML parser, so in well-formed markup a comment or a script's text does not count.
+- `dockit check` refuses a page with a class no style defines, a `style=` attribute, an old `kit.css`, a picture's class named like a part, a card and its screen headed in different words, a screen that does not open with a short abstract (the whole answer before the detail, as a paper's abstract: at most 400 full-width or 800 Latin characters), or the ordinary ways a page fetches from outside: a `src`, a `srcset`, a frame, a `<link>`, an `@import`, a `url()` that is neither `data:` nor `#id`, a `<meta>` refresh. It reads the markup with an HTML parser, so in well-formed markup a comment or a script's text does not count.
 - It stops a page where it is run. Claude runs it on every page; a repository that builds pages puts it in its own tests.
 - Inside a `doc-fig` figure (a diagram another tool made) it does not ask that classes be defined, and lets `style=` be; a kit part's name on a picture and a fetch are refused there too.
 - It checks a page written in good faith; it is not a wall against one written to get past it. What an inline script does when it runs, an escaped CSS keyword, an `image-set()` of bare strings, markup that only a browser's parser untangles, or a class named only inside an attribute selector or a function gets by. Python 3.9's parser and a current one disagree on some malformed markup.
@@ -72,16 +72,16 @@ Three different things stand behind the sentences above, and they are not equall
 
 **Claude is asked, and nothing notices a skipped step.**
 
-- Going through the steps at all, writing Japanese by `yomiyasu`'s rules and rewriting the places its lint names (`dockit check` prints them for every Japanese page; it does not stop a page for them), looking at the screenshots, the read by simulated readers, and the parts' rules `check` does not read (a table's head row, a picture's label, a way back from a screen). A skill is a prompt.
+- Going through the steps at all, writing Japanese by `yomiyasu`'s rules and rewriting the places its lint names (`dockit check` prints them for every Japanese page; it does not stop a page for them, and fails only a Japanese page it could not read), looking at the screenshots, the read by simulated readers, and the parts' rules `check` does not read (a table's head row, a picture's label, a way back from a screen). A skill is a prompt.
 - So the hand-over has to say what was not done. How often the whole path is followed without being asked has not been measured.
 
 **Nobody checks.**
 
-- Whether a picture is understood at a glance. The simulated readers read text and do not see pictures, and pictures are the point of a `picture-manual` page. Claude looks at the screenshots; the first fresh eyes on a picture are yours.
-- Whether a tired person reads as far as the simulated tired reader did. Its limit (thirty seconds, the first third of a screen) is asked of a model that reads every line.
+- Whether a person sees in a picture what its reader saw. The pictures of a manual are read one at a time by a model that is shown a picture without its neighbours and chooses its line among theirs (`dockit pictures`, `dockit grade`): a miss is a finding, but one right choice in four is right by chance, and no person has been compared with that reader.
+- Whether a reader in a hurry is served. There is no separate "tired reader": every screen opens with an abstract that `dockit check` keeps short, and the readers answer from the abstract first. Whether a short abstract is a good one, only the read says.
 - Whether a person finds a page easy to read. There is no measurement against human readers and no benchmark. The page, the readers' wishes and the verdicts come from the same kind of model, and one read is one sample. What the readers find is real, and is fixed; what they do not find proves nothing.
 
-What was actually run: the read by lookup was worked out on one real manual (two readers, ten wishes, two rounds), and its written procedure was tried once from nothing, before its last revision. `yomiyasu` brings its own measurements and limits, in [its repository](https://github.com/nanaism/yomiyasu/blob/main/docs/limitations.md): its checks find fixed shapes, and whether a text reads well is left to a person there too.
+What was actually run: the read by lookup was worked out on one real manual (two readers, ten wishes, two rounds), and its written procedure was tried once from nothing, before its later revisions. The abstract-first read and the read of the pictures are new in 0.5.0: the commands were run on two real manuals, and no reader has gone through them yet. `yomiyasu` brings its own measurements and limits, in [its repository](https://github.com/nanaism/yomiyasu/blob/main/docs/limitations.md): its checks find fixed shapes, and whether a text reads well is left to a person there too.
 
 ## The two shapes of a page
 
@@ -115,7 +115,7 @@ pnpm install
 pnpm build          # src/ → skills/doc-kit/kit.css and sample.html
 pnpm test           # the built files match src, check works, explainer gives kit pages, the imported tests that need no browser
 sh scripts/setup-d2.sh   # once, for the next line
-pnpm test:figures   # figure-check's regression tests and the example deck's page gates (a browser and d2)
+pnpm test:figures   # figure-check's regression tests, the example deck's page gates and the pictures quiz (a browser and d2)
 ```
 
 `pnpm install` sets a pre-commit hook (`.githooks/pre-commit`) that runs `pnpm test`. GitHub Actions runs both test commands on every push and pull request (`.github/workflows/test.yml`). Renovate keeps the dependencies up to date (`renovate.json`): it merges by itself what the checks can vouch for. For the kit's own (daisyUI, Tailwind), the `kit` workflow rebuilds `kit.css` on the update's branch and lets it through when the sample page looks the same before and after, pixel for pixel (`scripts/look.mjs`); a look that changed waits for a person, with the pictures. The tools the sample documents quote are updated only when asked for on the Dependency Dashboard, because that means measuring again.
@@ -129,14 +129,14 @@ Known: `figure-check` compares a Mermaid figure with its committed SVG byte for 
 | Path | What |
 |---|---|
 | `src/kit.css`, `src/sample.html` | the look's source: the entry for Tailwind and daisyUI, the `doc-` parts, the sample's body (`src/classes.txt` is made from it) |
-| `skills/doc-kit/` | the look as a skill: the built `kit.css` and `sample.html`, `scripts/dockit` (wrap / check / text / lookup) |
+| `skills/doc-kit/` | the look as a skill: the built `kit.css` and `sample.html`, `scripts/dockit` (wrap / check / text / lookup / pictures / grade) |
 | `skills/picture-manual/` | manuals in pictures; `scripts/shots.sh` takes a page's screenshots at desktop and phone width |
 | `skills/explainer/`, `skills/explainer-book/` | explanations for one reader, and books; `scripts/build-html.mjs` gives kit pages |
 | `skills/first-reader/` | simulated readers (Apache-2.0) |
 | `skills/d2-diagram/`, `skills/d2-slides/` | D2 diagrams and decks |
 | `skills/yomiyasu/` | rewriting AI-written Japanese, and its lint (MIT). A copy, not edited here: `scripts/take-yomiyasu.sh` takes it again from the fork |
 | `docs/`, `examples/` | sample documents (which figure tool to use, data figures) and a sample deck; each has `README.md` (English) and `README.ja.md` |
-| `tests/` | `test.sh` (the whole) and the imported skills' tests (`d2/`, `figure-check/`, `first-reader/`; yomiyasu's own are in its repository), and `deck-gates.sh` (the example deck's page gates) |
+| `tests/` | `test.sh` (the whole) and the imported skills' tests (`d2/`, `figure-check/`, `first-reader/`; yomiyasu's own are in its repository), `deck-gates.sh` (the example deck's page gates) and `pictures.sh` (the pictures quiz, with a browser) |
 | `scripts/` | `build-kit.sh`, `look.mjs` (pictures of a page, to compare a look before and after), `take-yomiyasu.sh`, and `setup-d2.sh` / `setup-tla.sh` (fetch tools into `.tools/`) |
 | `.claude-plugin/` | the plugin and marketplace definitions |
 | `.github/`, `.githooks/`, `renovate.json` | the checks on a push and a pull request, the check before a commit, the dependency updates |

@@ -30,6 +30,8 @@ This skill is for how to use a thing.
    - the picture: いま → こうなる, the same view on both sides;
    - one line of the result, something the picture visibly shows;
    - a link to the reference rows for that setting.
+   A card opens a screen, and the screen opens with the same three (how, picture, result) as its abstract, before
+   any detail: a reader who reads no further has the answer (doc-kit's parts; `dockit check` holds it).
 3. **The settings, value by value**, for looking things up: each value one line of what happens, with a picture
    wherever the value changes the output, and the values of one setting side by side so they can be compared.
 4. No specification on the page. What the tool does not do, conditions, exceptions, the version a thing arrived in,
@@ -154,24 +156,26 @@ sticky headings stay while scrolling, and whether the links move; say so, or try
 
 ### 8. Have it read
 
-The `first-reader` skill reads the page before the user does; this is not something the user asks for. Its
-readers read text: the pictures, which are this page's point, they do not see. Whether a picture is understood at
-a glance is tested by nobody but you in step 7, and then by the user. A manual
+The `first-reader` skill reads the page before the user does; this is not something the user asks for. A manual
 is not read in order: its readers come with a wish. So the read is a read by lookup, and its whole procedure is one
 short file, `../first-reader/references/lookup.md`. Follow it; in short:
 
 - `python3 ../doc-kit/scripts/dockit lookup page.html -o <run dir>` gives the page as a reader meets it: the home
   before pressing anything, then each screen.
-- Two readers (the owner a month later; the same person tired, in the middle of work), each a fresh subagent. Eight
-  to ten wishes in the reader's words, not the cards'; two or three the page does not name, one of them something
-  the tool cannot do.
-- Each reader first says, from the home alone, what they would press for every wish; then answers from what
-  that press opens, alone.
+- One reader, the owner a month later, read by two fresh subagents. Eight to ten wishes in the reader's words,
+  not the cards'; two or three the page does not name, one of them something the tool cannot do.
+- Each reader first says, from the home alone, what they would press for every wish; then answers from the
+  abstract of the screen that press opens, and gets the whole screen only where the abstract did not answer.
+  So every screen opens with its abstract (doc-kit's parts; `dockit check` holds it): the reader in a hurry
+  is served by the page, not by a second kind of read.
+- The pictures are read too, one at a time: `python3 ../doc-kit/scripts/dockit pictures page.html -o <run
+  dir>/pictures`, one fresh subagent for each quiz, who sees only the picture and chooses its line among its
+  neighbours'; `dockit grade` names the pictures that were not read as what they are. Redraw those, or change
+  their line to what they show.
 - Sort the stumbles: the words (change the card's words, step 2), no place for it (give it one), no fact (nobody
-  tried or measured it: an issue, not a rewrite). A stumble about what only a picture shows is held against step
-  7's pictures before it counts.
-- The readers and the wishes are kept beside the page's source (`<page>.readers.md`), so the next read costs one
-  command. One second round after the fixes, then the hand-over.
+  tried or measured it: an issue, not a rewrite).
+- The reader and the wishes are kept beside the page's source (`<page>.readers.md`), so the next read costs two
+  commands and a few subagents. One second round after the fixes, then the hand-over.
 
 The trial of step 5 is not read by them: the user is its reader. When this step may be left out, and what to say
 then, is in doc-kit's SKILL.md ("Every page goes the same way").
@@ -198,4 +202,4 @@ named with the tool's prefix: a picture's class called `input` or `btn` takes a 
 
 Give the page's path (a `file://` link), what changed in two or three lines, what the readers said and what you
 changed for it, and what you did not check (a theme, a
-width, a link; and that no reader has seen the pictures: the readers read text). The user reads the page, not the report.
+width, a link), and how many pictures their readers did not read as what they are. The user reads the page, not the report.
