@@ -1,6 +1,6 @@
 {
   "name": "doc-kit",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "One look for document pages (daisyUI 5 on Tailwind 4, prebuilt), with the skills that write them",
   "packageManager": "pnpm@12.18.0",
   "scripts": {
@@ -15,7 +15,7 @@
     "@iconify-json/lucide": "1.2.154",
     "@mizchi/vlmkit": "^0.24.0",
     "@tailwindcss/cli": "4.3.5",
-    "daisyui": "5.7.50",
+    "daisyui": "5.8.0",
     "marked": "18.2.0",
     "mermaid": "12.0.0",
     "ml-matrix": "6.15.0",
