@@ -170,8 +170,8 @@ importers:
         specifier: 1.2.20
         version: 1.2.20
       '@iconify-json/lucide':
-        specifier: 1.2.156
-        version: 1.2.156
+        specifier: 1.2.157
+        version: 1.2.157
       '@mizchi/vlmkit':
         specifier: ^0.24.0
         version: 0.24.0(playwright@1.65.1)
@@ -238,8 +238,8 @@ packages:
   '@iconify-json/logos@1.2.20':
     resolution: {integrity: sha512-HDSte2/+sgGNn9i/eYMiIRDbdigWxZe6EFauQGtxfRG/4sUtUBFgLIdxotKQysKNsFJlLYDFzPILOs3mh9viRQ==}
 
-  '@iconify-json/lucide@1.2.156':
-    resolution: {integrity: sha512-IOB3g2X+cmpoEPcjEbGfpDWPPzXioeDW2gnYgaNxYSaVEHyM4fQqP2uz29cdRQJbQwo5CTQ8D9NJnATeCQKatQ==}
+  '@iconify-json/lucide@1.2.157':
+    resolution: {integrity: sha512-hFOoLrhzbDkDfWdLhrEWHTyUXUkBxV5jrY00XgtI6zDKrwh5jANu0BLXb6xfCS/FeQ6A/9XDvEk4aJovNbOslg==}
 
   '@iconify/types@2.0.0':
     resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}
@@ -1232,7 +1232,7 @@ snapshots:
     dependencies:
       '@iconify/types': 2.0.0
 
-  '@iconify-json/lucide@1.2.156':
+  '@iconify-json/lucide@1.2.157':
     dependencies:
       '@iconify/types': 2.0.0
 
